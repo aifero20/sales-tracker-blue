@@ -45,11 +45,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       if (newSession?.user) {
-        // defer to avoid deadlock
-        setTimeout(() => { loadProfile(newSession.user.id); }, 0);
+        setLoading(true);
+        // defer to avoid deadlock with Supabase client
+        setTimeout(() => {
+          loadProfile(newSession.user.id).finally(() => setLoading(false));
+        }, 0);
       } else {
         setProfile(null);
         setRole(null);
+        setLoading(false);
       }
     });
 
