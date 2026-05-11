@@ -13,8 +13,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSalesIndexRouteImport } from './routes/_app/sales/index'
+import { Route as AppAdminIndexRouteImport } from './routes/_app/admin/index'
 import { Route as AppSalesInputRouteImport } from './routes/_app/sales/input'
 import { Route as AppSalesHistoryRouteImport } from './routes/_app/sales/history'
+import { Route as AppAdminTransactionsRouteImport } from './routes/_app/admin/transactions'
+import { Route as AppAdminAnalyticsRouteImport } from './routes/_app/admin/analytics'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -35,6 +38,11 @@ const AppSalesIndexRoute = AppSalesIndexRouteImport.update({
   path: '/sales/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSalesInputRoute = AppSalesInputRouteImport.update({
   id: '/sales/input',
   path: '/sales/input',
@@ -45,19 +53,35 @@ const AppSalesHistoryRoute = AppSalesHistoryRouteImport.update({
   path: '/sales/history',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminTransactionsRoute = AppAdminTransactionsRouteImport.update({
+  id: '/admin/transactions',
+  path: '/admin/transactions',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminAnalyticsRoute = AppAdminAnalyticsRouteImport.update({
+  id: '/admin/analytics',
+  path: '/admin/analytics',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/admin/analytics': typeof AppAdminAnalyticsRoute
+  '/admin/transactions': typeof AppAdminTransactionsRoute
   '/sales/history': typeof AppSalesHistoryRoute
   '/sales/input': typeof AppSalesInputRoute
+  '/admin/': typeof AppAdminIndexRoute
   '/sales/': typeof AppSalesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/admin/analytics': typeof AppAdminAnalyticsRoute
+  '/admin/transactions': typeof AppAdminTransactionsRoute
   '/sales/history': typeof AppSalesHistoryRoute
   '/sales/input': typeof AppSalesInputRoute
+  '/admin': typeof AppAdminIndexRoute
   '/sales': typeof AppSalesIndexRoute
 }
 export interface FileRoutesById {
@@ -65,22 +89,44 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/admin/analytics': typeof AppAdminAnalyticsRoute
+  '/_app/admin/transactions': typeof AppAdminTransactionsRoute
   '/_app/sales/history': typeof AppSalesHistoryRoute
   '/_app/sales/input': typeof AppSalesInputRoute
+  '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/sales/': typeof AppSalesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/sales/history' | '/sales/input' | '/sales/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/admin/analytics'
+    | '/admin/transactions'
+    | '/sales/history'
+    | '/sales/input'
+    | '/admin/'
+    | '/sales/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/sales/history' | '/sales/input' | '/sales'
+  to:
+    | '/'
+    | '/login'
+    | '/admin/analytics'
+    | '/admin/transactions'
+    | '/sales/history'
+    | '/sales/input'
+    | '/admin'
+    | '/sales'
   id:
     | '__root__'
     | '/'
     | '/_app'
     | '/login'
+    | '/_app/admin/analytics'
+    | '/_app/admin/transactions'
     | '/_app/sales/history'
     | '/_app/sales/input'
+    | '/_app/admin/'
     | '/_app/sales/'
   fileRoutesById: FileRoutesById
 }
@@ -120,6 +166,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSalesIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/': {
+      id: '/_app/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AppAdminIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/sales/input': {
       id: '/_app/sales/input'
       path: '/sales/input'
@@ -134,18 +187,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSalesHistoryRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/transactions': {
+      id: '/_app/admin/transactions'
+      path: '/admin/transactions'
+      fullPath: '/admin/transactions'
+      preLoaderRoute: typeof AppAdminTransactionsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/analytics': {
+      id: '/_app/admin/analytics'
+      path: '/admin/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AppAdminAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAdminAnalyticsRoute: typeof AppAdminAnalyticsRoute
+  AppAdminTransactionsRoute: typeof AppAdminTransactionsRoute
   AppSalesHistoryRoute: typeof AppSalesHistoryRoute
   AppSalesInputRoute: typeof AppSalesInputRoute
+  AppAdminIndexRoute: typeof AppAdminIndexRoute
   AppSalesIndexRoute: typeof AppSalesIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAdminAnalyticsRoute: AppAdminAnalyticsRoute,
+  AppAdminTransactionsRoute: AppAdminTransactionsRoute,
   AppSalesHistoryRoute: AppSalesHistoryRoute,
   AppSalesInputRoute: AppSalesInputRoute,
+  AppAdminIndexRoute: AppAdminIndexRoute,
   AppSalesIndexRoute: AppSalesIndexRoute,
 }
 
