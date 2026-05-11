@@ -17,7 +17,19 @@ function AppLayout() {
     if (!loading && !session) navigate({ to: "/login" });
   }, [loading, session, navigate]);
 
-  if (loading || !session) {
+  useEffect(() => {
+    if (loading || !session || !role) return;
+
+    if (role === "admin" && location.pathname.startsWith("/sales")) {
+      navigate({ to: "/admin", replace: true });
+    }
+
+    if (role === "sales" && location.pathname.startsWith("/admin")) {
+      navigate({ to: "/sales", replace: true });
+    }
+  }, [loading, session, role, location.pathname, navigate]);
+
+  if (loading || !session || !role) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-subtle">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -27,6 +39,14 @@ function AppLayout() {
 
   const isAdmin = role === "admin";
   const path = location.pathname;
+
+  if ((isAdmin && path.startsWith("/sales")) || (!isAdmin && path.startsWith("/admin"))) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-subtle">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const salesNav = [
     { to: "/sales", icon: Home, label: "Beranda" },
