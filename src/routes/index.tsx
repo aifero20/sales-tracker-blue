@@ -1,26 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { useAuth } from "@/hooks/use-auth";
+import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+function Index() {
+  const { loading, session, role } = useAuth();
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
     </div>
   );
-}
-
-function Index() {
-  return <PlaceholderIndex />;
+  if (!session) return <Navigate to="/login" />;
+  if (role === "admin") return <Navigate to="/admin" />;
+  return <Navigate to="/sales" />;
 }
