@@ -13,6 +13,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSalesIndexRouteImport } from './routes/_app/sales/index'
+import { Route as AppSalesInputRouteImport } from './routes/_app/sales/input'
+import { Route as AppSalesHistoryRouteImport } from './routes/_app/sales/history'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -33,15 +35,29 @@ const AppSalesIndexRoute = AppSalesIndexRouteImport.update({
   path: '/sales/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSalesInputRoute = AppSalesInputRouteImport.update({
+  id: '/sales/input',
+  path: '/sales/input',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSalesHistoryRoute = AppSalesHistoryRouteImport.update({
+  id: '/sales/history',
+  path: '/sales/history',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/sales/history': typeof AppSalesHistoryRoute
+  '/sales/input': typeof AppSalesInputRoute
   '/sales/': typeof AppSalesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/sales/history': typeof AppSalesHistoryRoute
+  '/sales/input': typeof AppSalesInputRoute
   '/sales': typeof AppSalesIndexRoute
 }
 export interface FileRoutesById {
@@ -49,14 +65,23 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/sales/history': typeof AppSalesHistoryRoute
+  '/_app/sales/input': typeof AppSalesInputRoute
   '/_app/sales/': typeof AppSalesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/sales/'
+  fullPaths: '/' | '/login' | '/sales/history' | '/sales/input' | '/sales/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/sales'
-  id: '__root__' | '/' | '/_app' | '/login' | '/_app/sales/'
+  to: '/' | '/login' | '/sales/history' | '/sales/input' | '/sales'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/_app/sales/history'
+    | '/_app/sales/input'
+    | '/_app/sales/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,14 +120,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSalesIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/sales/input': {
+      id: '/_app/sales/input'
+      path: '/sales/input'
+      fullPath: '/sales/input'
+      preLoaderRoute: typeof AppSalesInputRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/sales/history': {
+      id: '/_app/sales/history'
+      path: '/sales/history'
+      fullPath: '/sales/history'
+      preLoaderRoute: typeof AppSalesHistoryRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppSalesHistoryRoute: typeof AppSalesHistoryRoute
+  AppSalesInputRoute: typeof AppSalesInputRoute
   AppSalesIndexRoute: typeof AppSalesIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppSalesHistoryRoute: AppSalesHistoryRoute,
+  AppSalesInputRoute: AppSalesInputRoute,
   AppSalesIndexRoute: AppSalesIndexRoute,
 }
 
