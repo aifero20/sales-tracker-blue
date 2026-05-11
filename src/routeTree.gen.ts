@@ -9,38 +9,185 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppSalesIndexRouteImport } from './routes/_app/sales/index'
+import { Route as AppAdminIndexRouteImport } from './routes/_app/admin/index'
+import { Route as AppSalesInputRouteImport } from './routes/_app/sales/input'
+import { Route as AppSalesHistoryRouteImport } from './routes/_app/sales/history'
+import { Route as AppAdminTransactionsRouteImport } from './routes/_app/admin/transactions'
+import { Route as AppAdminSettingsRouteImport } from './routes/_app/admin/settings'
+import { Route as AppAdminSalesRouteImport } from './routes/_app/admin/sales'
+import { Route as AppAdminProductsRouteImport } from './routes/_app/admin/products'
+import { Route as AppAdminAnalyticsRouteImport } from './routes/_app/admin/analytics'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppSalesIndexRoute = AppSalesIndexRouteImport.update({
+  id: '/sales/',
+  path: '/sales/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSalesInputRoute = AppSalesInputRouteImport.update({
+  id: '/sales/input',
+  path: '/sales/input',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSalesHistoryRoute = AppSalesHistoryRouteImport.update({
+  id: '/sales/history',
+  path: '/sales/history',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminTransactionsRoute = AppAdminTransactionsRouteImport.update({
+  id: '/admin/transactions',
+  path: '/admin/transactions',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminSettingsRoute = AppAdminSettingsRouteImport.update({
+  id: '/admin/settings',
+  path: '/admin/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminSalesRoute = AppAdminSalesRouteImport.update({
+  id: '/admin/sales',
+  path: '/admin/sales',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminProductsRoute = AppAdminProductsRouteImport.update({
+  id: '/admin/products',
+  path: '/admin/products',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminAnalyticsRoute = AppAdminAnalyticsRouteImport.update({
+  id: '/admin/analytics',
+  path: '/admin/analytics',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/admin/analytics': typeof AppAdminAnalyticsRoute
+  '/admin/products': typeof AppAdminProductsRoute
+  '/admin/sales': typeof AppAdminSalesRoute
+  '/admin/settings': typeof AppAdminSettingsRoute
+  '/admin/transactions': typeof AppAdminTransactionsRoute
+  '/sales/history': typeof AppSalesHistoryRoute
+  '/sales/input': typeof AppSalesInputRoute
+  '/admin/': typeof AppAdminIndexRoute
+  '/sales/': typeof AppSalesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/admin/analytics': typeof AppAdminAnalyticsRoute
+  '/admin/products': typeof AppAdminProductsRoute
+  '/admin/sales': typeof AppAdminSalesRoute
+  '/admin/settings': typeof AppAdminSettingsRoute
+  '/admin/transactions': typeof AppAdminTransactionsRoute
+  '/sales/history': typeof AppSalesHistoryRoute
+  '/sales/input': typeof AppSalesInputRoute
+  '/admin': typeof AppAdminIndexRoute
+  '/sales': typeof AppSalesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_app/admin/analytics': typeof AppAdminAnalyticsRoute
+  '/_app/admin/products': typeof AppAdminProductsRoute
+  '/_app/admin/sales': typeof AppAdminSalesRoute
+  '/_app/admin/settings': typeof AppAdminSettingsRoute
+  '/_app/admin/transactions': typeof AppAdminTransactionsRoute
+  '/_app/sales/history': typeof AppSalesHistoryRoute
+  '/_app/sales/input': typeof AppSalesInputRoute
+  '/_app/admin/': typeof AppAdminIndexRoute
+  '/_app/sales/': typeof AppSalesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/admin/analytics'
+    | '/admin/products'
+    | '/admin/sales'
+    | '/admin/settings'
+    | '/admin/transactions'
+    | '/sales/history'
+    | '/sales/input'
+    | '/admin/'
+    | '/sales/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/admin/analytics'
+    | '/admin/products'
+    | '/admin/sales'
+    | '/admin/settings'
+    | '/admin/transactions'
+    | '/sales/history'
+    | '/sales/input'
+    | '/admin'
+    | '/sales'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/_app/admin/analytics'
+    | '/_app/admin/products'
+    | '/_app/admin/sales'
+    | '/_app/admin/settings'
+    | '/_app/admin/transactions'
+    | '/_app/sales/history'
+    | '/_app/sales/input'
+    | '/_app/admin/'
+    | '/_app/sales/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +195,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/sales/': {
+      id: '/_app/sales/'
+      path: '/sales'
+      fullPath: '/sales/'
+      preLoaderRoute: typeof AppSalesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/': {
+      id: '/_app/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AppAdminIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/sales/input': {
+      id: '/_app/sales/input'
+      path: '/sales/input'
+      fullPath: '/sales/input'
+      preLoaderRoute: typeof AppSalesInputRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/sales/history': {
+      id: '/_app/sales/history'
+      path: '/sales/history'
+      fullPath: '/sales/history'
+      preLoaderRoute: typeof AppSalesHistoryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/transactions': {
+      id: '/_app/admin/transactions'
+      path: '/admin/transactions'
+      fullPath: '/admin/transactions'
+      preLoaderRoute: typeof AppAdminTransactionsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/settings': {
+      id: '/_app/admin/settings'
+      path: '/admin/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AppAdminSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/sales': {
+      id: '/_app/admin/sales'
+      path: '/admin/sales'
+      fullPath: '/admin/sales'
+      preLoaderRoute: typeof AppAdminSalesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/products': {
+      id: '/_app/admin/products'
+      path: '/admin/products'
+      fullPath: '/admin/products'
+      preLoaderRoute: typeof AppAdminProductsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/analytics': {
+      id: '/_app/admin/analytics'
+      path: '/admin/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AppAdminAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppAdminAnalyticsRoute: typeof AppAdminAnalyticsRoute
+  AppAdminProductsRoute: typeof AppAdminProductsRoute
+  AppAdminSalesRoute: typeof AppAdminSalesRoute
+  AppAdminSettingsRoute: typeof AppAdminSettingsRoute
+  AppAdminTransactionsRoute: typeof AppAdminTransactionsRoute
+  AppSalesHistoryRoute: typeof AppSalesHistoryRoute
+  AppSalesInputRoute: typeof AppSalesInputRoute
+  AppAdminIndexRoute: typeof AppAdminIndexRoute
+  AppSalesIndexRoute: typeof AppSalesIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAdminAnalyticsRoute: AppAdminAnalyticsRoute,
+  AppAdminProductsRoute: AppAdminProductsRoute,
+  AppAdminSalesRoute: AppAdminSalesRoute,
+  AppAdminSettingsRoute: AppAdminSettingsRoute,
+  AppAdminTransactionsRoute: AppAdminTransactionsRoute,
+  AppSalesHistoryRoute: AppSalesHistoryRoute,
+  AppSalesInputRoute: AppSalesInputRoute,
+  AppAdminIndexRoute: AppAdminIndexRoute,
+  AppSalesIndexRoute: AppSalesIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
