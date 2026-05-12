@@ -31,9 +31,10 @@ function SalesInputPage() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
 
-  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
+  const [photoBase64, setPhotoBase64] = useState<string | null>(() => sessionStorage.getItem("pendingPhoto"));
   const [photoMime, setPhotoMime] = useState<string>("image/jpeg");
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [qty, setQty] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState("");
@@ -75,16 +76,31 @@ function SalesInputPage() {
   };
 
   const onPhoto = (file: File) => {
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("Foto terlalu besar (maks 8MB)");
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Foto terlalu besar (maks 20MB)");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPhotoBase64((reader.result as string).split(",")[1] ?? null);
-      setPhotoMime(file.type || "image/jpeg");
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const maxSize = 800;
+      let w = img.width, h = img.height;
+      if (w > maxSize || h > maxSize) {
+        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+      const b64 = dataUrl.split(",")[1] ?? null;
+      if (b64) sessionStorage.setItem("pendingPhoto", b64);
+      setPhotoBase64(b64);
+      setPhotoMime("image/jpeg");
+      URL.revokeObjectURL(url);
     };
-    reader.readAsDataURL(file);
+    img.src = url;
   };
 
   const filteredStores = stores.filter((s) => s.name.toLowerCase().includes(storeName.toLowerCase()) && storeName.length > 0).slice(0, 5);
@@ -193,6 +209,7 @@ function SalesInputPage() {
         },
       }).catch((e) => console.warn("Sheet sync failed (non-blocking):", e));
 
+      sessionStorage.removeItem('pendingPhoto');
       toast.success("Transaksi berhasil disimpan");
       navigate({ to: "/sales/history" });
     } catch (err: any) {
@@ -214,23 +231,34 @@ function SalesInputPage() {
       <Card className="shadow-soft">
         <CardHeader className="pb-3"><CardTitle className="text-base">Foto Toko & Lokasi</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden"
-            onChange={(e) => e.target.files?.[0] && onPhoto(e.target.files[0])} />
-          {photoBase64 ? (
-            <div className="relative">
-              <img src={`data:${photoMime};base64,${photoBase64}`} alt="Toko" className="w-full h-48 object-cover rounded-lg border" />
-              <Button size="sm" variant="secondary" className="absolute top-2 right-2"
-                onClick={() => { setPhotoBase64(null); fileRef.current && (fileRef.current.value = ""); }}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <Button type="button" variant="outline" className="w-full h-32 border-dashed" onClick={() => fileRef.current?.click()}>
-              <div className="flex flex-col items-center gap-2">
+          {!photoBase64 && (
+          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-input rounded-md cursor-pointer bg-background hover:bg-accent overflow-hidden">
+              <div className="flex flex-col items-center gap-2 pointer-events-none">
                 <Camera className="h-6 w-6 text-primary" />
                 <span className="text-sm">Ambil Foto Toko</span>
               </div>
-            </Button>
+            <input
+              ref={(el) => {
+                (cameraInputRef as any).current = el;
+                if (el && !el.dataset.bound) {
+                  el.dataset.bound = "1";
+                  el.addEventListener("change", () => {
+                    const f = el.files?.[0];
+                    if (f) onPhoto(f);
+                    el.value = "";
+                  });
+                }
+              }}
+              type="file" accept="image/*" capture="environment" className="hidden" />
+          </label>
+          )}
+          {photoBase64 && (
+            <div className="relative">
+              <img src={`data:image/jpeg;base64,${photoBase64}`} alt="Toko" className="w-full h-48 object-cover rounded-lg border" onError={(e) => console.error("img error", e)} />
+              <Button size="sm" variant="outline" className="absolute top-2 right-2" onClick={() => { setPhotoBase64(null); sessionStorage.removeItem('pendingPhoto'); }}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           )}
           <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2">
             <div className="flex items-center gap-2 text-sm">
