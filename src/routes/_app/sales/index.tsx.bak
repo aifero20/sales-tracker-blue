@@ -2,9 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, History, TrendingUp, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
+import { PlusCircle, History, TrendingUp, ShoppingCart } from "lucide-react";
 import { formatRupiah } from "@/lib/constants";
 
 export const Route = createFileRoute("/_app/sales/")({
@@ -13,47 +13,23 @@ export const Route = createFileRoute("/_app/sales/")({
 
 function SalesHome() {
   const { user, profile } = useAuth();
-  const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [stats, setStats] = useState({ today: 0, todayValue: 0, total: 0, totalValue: 0 });
 
   useEffect(() => {
     if (!user) return;
     (async () => {
       const today = new Date().toISOString().slice(0, 10);
-      const { data: t } = await supabase
-        .from("sales_transactions")
-        .select("total_amount, transaction_date")
-        .eq("sales_user_id", user.id);
+      const { data: t } = await supabase.from("sales_transactions").select("total_amount, transaction_date").eq("sales_user_id", user.id);
       if (!t) return;
-
       const todayRows = t.filter((r) => r.transaction_date === today);
-      const monthStr = String(selectedMonth + 1).padStart(2, "0");
-      const prefix = `${selectedYear}-${monthStr}`;
-      const monthRows = t.filter((r) => r.transaction_date?.startsWith(prefix));
-
       setStats({
         today: todayRows.length,
         todayValue: todayRows.reduce((s, r) => s + (r.total_amount || 0), 0),
-        total: monthRows.length,
-        totalValue: monthRows.reduce((s, r) => s + (r.total_amount || 0), 0),
+        total: t.length,
+        totalValue: t.reduce((s, r) => s + (r.total_amount || 0), 0),
       });
     })();
-  }, [user, selectedMonth, selectedYear]);
-
-  const monthNames = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-
-  const prevMonth = () => {
-    if (selectedMonth === 0) { setSelectedMonth(11); setSelectedYear(y => y - 1); }
-    else setSelectedMonth(m => m - 1);
-  };
-  const nextMonth = () => {
-    if (selectedMonth === 11) { setSelectedMonth(0); setSelectedYear(y => y + 1); }
-    else setSelectedMonth(m => m + 1);
-  };
-
-  const isCurrentMonth = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
+  }, [user]);
 
   return (
     <div className="space-y-6">
@@ -66,22 +42,6 @@ function SalesHome() {
       <div className="grid grid-cols-2 gap-3">
         <StatCard label="Transaksi Hari Ini" value={stats.today.toString()} icon={ShoppingCart} accent />
         <StatCard label="Nilai Hari Ini" value={formatRupiah(stats.todayValue)} icon={TrendingUp} accent />
-      </div>
-
-      <div className="flex items-center justify-between bg-muted/50 rounded-lg px-4 py-2">
-        <button onClick={prevMonth} className="p-1 rounded hover:bg-muted">
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <div className="text-center">
-          <p className="text-xs text-muted-foreground">Total Bulan</p>
-          <p className="text-sm font-semibold">{monthNames[selectedMonth]} {selectedYear}</p>
-        </div>
-        <button onClick={nextMonth} disabled={isCurrentMonth} className="p-1 rounded hover:bg-muted disabled:opacity-30">
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
         <StatCard label="Total Transaksi" value={stats.total.toString()} icon={ShoppingCart} />
         <StatCard label="Nilai Total" value={formatRupiah(stats.totalValue)} icon={TrendingUp} />
       </div>
