@@ -41,12 +41,14 @@ function SalesInputPage() {
   const [stockChecks, setStockChecks] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  // Init stockChecks saat products loaded
+  // Init stockChecks saat products loaded (hanya untuk produk baru, tidak timpa yg sudah ada)
   useEffect(() => {
     if (products.length > 0) {
       setStockChecks(prev => {
-        const init: Record<string, boolean> = {};
-        products.forEach(p => { init[p.id] = prev[p.id] ?? false; });
+        const init: Record<string, boolean> = { ...prev };
+        products.forEach(p => {
+          if (!(p.id in init)) init[p.id] = false;
+        });
         return init;
       });
     }
