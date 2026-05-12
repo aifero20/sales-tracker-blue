@@ -38,7 +38,24 @@ function SalesInputPage() {
 
   const [qty, setQty] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState("");
+  const [stockChecks, setStockChecks] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
+
+  // Init stockChecks saat products loaded
+  useEffect(() => {
+    if (products.length > 0) {
+      setStockChecks(prev => {
+        const init: Record<string, boolean> = {};
+        products.forEach(p => { init[p.id] = prev[p.id] ?? false; });
+        return init;
+      });
+    }
+  }, [products]);
+
+  const stockNotesValue = (() => {
+    const checked = products.filter(p => stockChecks[p.id]).map(p => p.name);
+    return checked.length > 0 ? checked.join(", ") : "Tidak ada";
+  })();
 
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10);
@@ -122,7 +139,7 @@ function SalesInputPage() {
     if (!storeName.trim()) return toast.error("Nama toko wajib diisi");
     if (!storeAddress.trim()) return toast.error("Alamat toko wajib diisi");
     if (items.length === 0) return toast.error("Minimal satu produk harus diisi");
-    if (!notes.trim()) return toast.error("Keterangan stok wajib diisi");
+    
     if (!photoBase64) return toast.error("Foto toko wajib diambil");
 
     setSubmitting(true);
@@ -170,7 +187,7 @@ function SalesInputPage() {
         longitude: coords?.lng ?? null,
         photo_url: photoUrl,
         total_amount: grandTotal,
-        notes: notes.trim(),
+        notes: stockNotesValue,
       }).select("id").single();
       if (te) throw te;
 
@@ -203,7 +220,7 @@ function SalesInputPage() {
             longitude: coords?.lng ?? null,
             photo_url: photoUrl,
             total: grandTotal,
-            notes: notes.trim(),
+            notes: stockNotesValue,
             items: itemRows.map((r) => ({ product: r.product_name, qty: r.quantity, price: r.unit_price, subtotal: r.subtotal })),
           },
         },
@@ -301,7 +318,26 @@ function SalesInputPage() {
         </CardContent>
       </Card>
 
-      {/* Produk */}
+      {/* Stok di Toko */}
+      <Card className="shadow-soft">
+        <CardHeader className="pb-3"><CardTitle className="text-base">Stok di Toko <span className="text-destructive text-sm">*</span></CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            {products.map((p) => (
+              <label key={p.id} className="flex items-center gap-2 cursor-pointer py-1">
+                <input
+                  type="checkbox"
+                  checked={stockChecks[p.id] ?? false}
+                  onChange={(e) => setStockChecks(prev => ({ ...prev, [p.id]: e.target.checked }))}
+                  className="h-4 w-4 rounded accent-primary"
+                />
+                <span className={`text-sm truncate ${stockChecks[p.id] ?? false ? "" : "line-through text-muted-foreground"}`}>{p.name}</span>
+              </label>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+            {/* Produk */}
       <Card className="shadow-soft">
         <CardHeader className="pb-3"><CardTitle className="text-base">Produk Terjual</CardTitle></CardHeader>
         <CardContent className="space-y-2">
@@ -335,11 +371,6 @@ function SalesInputPage() {
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Total</span>
             <span className="text-2xl font-bold text-primary">{formatRupiah(grandTotal)}</span>
-          </div>
-          <div className="space-y-2">
-            <Label>Keterangan Stok di Toko <span className="text-destructive">*</span></Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3}
-              placeholder="Contoh: Daun12 ada, Sultan16 tidak ada, Korek tipis…" />
           </div>
         </CardContent>
       </Card>
