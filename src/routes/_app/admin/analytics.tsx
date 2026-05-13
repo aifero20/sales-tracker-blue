@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { formatRupiah } from "@/lib/constants";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 
 export const Route = createFileRoute("/_app/admin/analytics")({
   component: Analytics,
@@ -16,6 +16,8 @@ function Analytics() {
   const [items, setItems] = useState<any[]>([]);
   const [tx, setTx] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fromDate, setFromDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [toDate, setToDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
     (async () => {
@@ -29,26 +31,37 @@ function Analytics() {
     })();
   }, []);
 
+  const filteredTx = useMemo(() => {
+    return tx.filter((r) => r.transaction_date >= fromDate && r.transaction_date <= toDate);
+  }, [tx, fromDate, toDate]);
+
+  const filteredItems = useMemo(() => {
+    const ids = new Set(filteredTx.map((r) => r.id));
+    return items.filter((it) => ids.has(it.transaction_id));
+  }, [items, filteredTx]);
+
   const bySales = useMemo(() => {
     const m = new Map<string, number>();
-    tx.forEach((r) => m.set(r.sales_code || "—", (m.get(r.sales_code || "—") ?? 0) + (r.total_amount || 0)));
+    filteredTx.forEach((r) => m.set(r.sales_code || "—", (m.get(r.sales_code || "—") ?? 0) + (r.total_amount || 0)));
     return Array.from(m.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  }, [tx]);
+  }, [filteredTx]);
 
   const byDate = useMemo(() => {
     const m = new Map<string, number>();
-    tx.forEach((r) => m.set(r.transaction_date, (m.get(r.transaction_date) ?? 0) + (r.total_amount || 0)));
+    filteredTx.forEach((r) => m.set(r.transaction_date, (m.get(r.transaction_date) ?? 0) + (r.total_amount || 0)));
     return Array.from(m.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([date, total]) => ({ date: date.slice(5), total }));
-  }, [tx]);
+  }, [filteredTx]);
 
   const byProduct = useMemo(() => {
     const m = new Map<string, { qty: number; value: number }>();
-    items.forEach((it) => {
+    filteredItems.forEach((it) => {
       const cur = m.get(it.product_name) ?? { qty: 0, value: 0 };
       m.set(it.product_name, { qty: cur.qty + (it.quantity || 0), value: cur.value + (it.subtotal || 0) });
     });
     return Array.from(m.entries()).map(([name, v]) => ({ name, qty: v.qty, value: v.value })).sort((a, b) => b.value - a.value);
-  }, [items]);
+  }, [filteredItems]);
+
+  const totalPenjualan = useMemo(() => filteredTx.reduce((s, r) => s + (r.total_amount || 0), 0), [filteredTx]);
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
@@ -58,6 +71,35 @@ function Analytics() {
         <h1 className="text-2xl font-bold">Analitik Penjualan</h1>
         <p className="text-sm text-muted-foreground">Visualisasi data penjualan seluruh sales</p>
       </div>
+
+      {/* Filter Tanggal */}
+      <Card className="shadow-soft">
+        <CardContent className="pt-4">
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Dari Tanggal</label>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="border rounded-md px-3 py-2 text-sm bg-background"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Sampai Tanggal</label>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="border rounded-md px-3 py-2 text-sm bg-background"
+              />
+            </div>
+            <div className="text-sm text-muted-foreground pb-2">
+              {filteredTx.length} transaksi · {formatRupiah(totalPenjualan)}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="shadow-soft">
         <CardHeader><CardTitle className="text-base">Penjualan per Tanggal</CardTitle></CardHeader>
@@ -86,23 +128,6 @@ function Analytics() {
                 <Tooltip formatter={(v: any) => formatRupiah(v)} contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                 <Bar dataKey="value" fill="#1f6feb" radius={[6, 6, 0, 0]} />
               </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-soft">
-        <CardHeader><CardTitle className="text-base">Distribusi Produk Terjual (Pcs)</CardTitle></CardHeader>
-        <CardContent>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={byProduct} dataKey="qty" nameKey="name" outerRadius={90} label={(e: any) => `${e.name} (${e.qty})`}>
-                  {byProduct.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
