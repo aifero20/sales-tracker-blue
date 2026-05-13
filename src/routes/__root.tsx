@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
 import {
   Outlet,
   createRootRouteWithContext,
@@ -8,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { registerServiceWorker } from "@/lib/register-sw";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -50,13 +52,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" },
-      { title: "Sales Rokok — Input Penjualan" },
+      { title: "Binowo Perkasa — Input Penjualan" },
       { name: "description", content: "Aplikasi input penjualan rokok untuk tim sales" },
       { name: "theme-color", content: "#1f6feb" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "Binowo" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icon-180.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -78,6 +83,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>

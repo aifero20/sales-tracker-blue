@@ -4,7 +4,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, MapPin, Package, ChevronDown, ChevronRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Loader2, MapPin, Package, ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { formatRupiah, formatDateID } from "@/lib/constants";
 
 export const Route = createFileRoute("/_app/sales/history")({
@@ -31,35 +33,95 @@ function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<string | null>(null);
 
+  const today = new Date().toISOString().slice(0, 10);
+  const [dateFrom, setDateFrom] = useState(today);
+  const [dateTo, setDateTo] = useState(today);
+  const [storeName, setStoreName] = useState("");
+  const [showFilter, setShowFilter] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data, error } = await supabase
+      setLoading(true);
+      let q = supabase
         .from("sales_transactions")
         .select("id, transaction_date, transaction_time, sequence_number, total_amount, notes, latitude, longitude, photo_url, stores(name, address), transaction_items(product_name, quantity, subtotal, unit_price)")
         .eq("sales_user_id", user.id)
+        .gte("transaction_date", dateFrom)
+        .lte("transaction_date", dateTo)
         .order("transaction_date", { ascending: false })
         .order("transaction_time", { ascending: false });
-      if (!error) setRows((data as any) ?? []);
+      const { data, error } = await q;
+      let result = (data as any) ?? [];
+      if (storeName.trim()) {
+        result = result.filter((r: Tx) =>
+          r.stores?.name?.toLowerCase().includes(storeName.trim().toLowerCase())
+        );
+      }
+      if (!error) setRows(result);
       setLoading(false);
     })();
-  }, [user]);
+  }, [user, dateFrom, dateTo, storeName]);
+
+  const isDefaultFilter = dateFrom === today && dateTo === today && storeName === "";
+  const resetFilter = () => { setDateFrom(today); setDateTo(today); setStoreName(""); };
 
   const totalAll = rows.reduce((s, r) => s + r.total_amount, 0);
+  const labelPeriode = dateFrom === dateTo
+    ? formatDateID(dateFrom)
+    : `${formatDateID(dateFrom)} – ${formatDateID(dateTo)}`;
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Riwayat Penjualan</h1>
-        <p className="text-sm text-muted-foreground">Total {rows.length} transaksi · {formatRupiah(totalAll)}</p>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold">Riwayat Penjualan</h1>
+          <p className="text-sm text-muted-foreground">
+            {rows.length} transaksi · {formatRupiah(totalAll)} · {labelPeriode}
+            {storeName && ` · "${storeName}"`}
+          </p>
+        </div>
+        <Button size="sm" variant={showFilter ? "default" : "outline"} className="shrink-0 mt-1"
+          onClick={() => setShowFilter(v => !v)}>
+          <Search className="h-4 w-4 mr-1" /> Filter
+        </Button>
       </div>
+
+      {showFilter && (
+        <Card className="shadow-soft">
+          <CardContent className="p-4 space-y-3">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Nama Toko</p>
+              <Input value={storeName} onChange={e => setStoreName(e.target.value)}
+                placeholder="Cari nama toko..." />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">Dari Tanggal</p>
+                <Input type="date" value={dateFrom} max={dateTo}
+                  onChange={e => setDateFrom(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">Sampai Tanggal</p>
+                <Input type="date" value={dateTo} min={dateFrom} max={today}
+                  onChange={e => setDateTo(e.target.value)} />
+              </div>
+            </div>
+            {!isDefaultFilter && (
+              <Button size="sm" variant="ghost" className="text-destructive w-full" onClick={resetFilter}>
+                <X className="h-4 w-4 mr-1" /> Reset ke Hari Ini
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : rows.length === 0 ? (
         <Card className="shadow-soft"><CardContent className="p-8 text-center text-muted-foreground">
           <Package className="h-10 w-10 mx-auto mb-3 opacity-50" />
-          Belum ada transaksi
+          Tidak ada transaksi pada periode ini
         </CardContent></Card>
       ) : (
         <div className="space-y-2">

@@ -42,7 +42,7 @@ function LoginPage() {
             <Cigarette className="h-7 w-7 text-primary-foreground" />
           </div>
           <div>
-            <CardTitle className="text-2xl">Sales Rokok</CardTitle>
+            <CardTitle className="text-2xl">Binowo Perkasa</CardTitle>
             <CardDescription>Masuk untuk mulai input penjualan</CardDescription>
           </div>
         </CardHeader>

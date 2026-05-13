@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, History, TrendingUp, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
+import { PlusCircle, History, TrendingUp, ShoppingCart, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { formatRupiah } from "@/lib/constants";
 
 export const Route = createFileRoute("/_app/sales/")({
@@ -14,6 +14,8 @@ export const Route = createFileRoute("/_app/sales/")({
 function SalesHome() {
   const { user, profile } = useAuth();
   const now = new Date();
+  const [filterDate, setFilterDate] = useState(now.toISOString().slice(0, 10));
+  const [showCal, setShowCal] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [stats, setStats] = useState({ today: 0, todayValue: 0, total: 0, totalValue: 0 });
@@ -21,7 +23,7 @@ function SalesHome() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = filterDate;
       const { data: t } = await supabase
         .from("sales_transactions")
         .select("total_amount, transaction_date")
@@ -40,7 +42,7 @@ function SalesHome() {
         totalValue: monthRows.reduce((s, r) => s + (r.total_amount || 0), 0),
       });
     })();
-  }, [user, selectedMonth, selectedYear]);
+  }, [user, selectedMonth, selectedYear, filterDate]);
 
   const monthNames = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 
@@ -63,22 +65,37 @@ function SalesHome() {
         <p className="text-sm text-muted-foreground">Kode Sales: <span className="font-medium text-foreground">{profile?.sales_code ?? "—"}</span></p>
       </div>
 
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Periode Harian</p>
+        <div className="relative">
+          <button onClick={() => setShowCal(c => !c)} className="p-1 rounded hover:bg-muted">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </button>
+          {showCal && (
+            <div className="absolute right-0 top-7 z-50 bg-popover border rounded-lg shadow-lg p-2">
+              <input type="date" value={filterDate} max={now.toISOString().slice(0,10)}
+                onChange={(e) => { setFilterDate(e.target.value); setShowCal(false); }}
+                className="text-sm border rounded px-2 py-1" />
+            </div>
+          )}
+        </div>
+      </div>
       <div className="grid grid-cols-2 gap-3">
-        <StatCard label="Transaksi Hari Ini" value={stats.today.toString()} icon={ShoppingCart} accent />
-        <StatCard label="Nilai Hari Ini" value={formatRupiah(stats.todayValue)} icon={TrendingUp} accent />
+        <StatCard label={`Transaksi ${filterDate === now.toISOString().slice(0,10) ? "Hari Ini" : filterDate}`} value={stats.today.toString()} icon={ShoppingCart} accent />
+        <StatCard label={`Nilai ${filterDate === now.toISOString().slice(0,10) ? "Hari Ini" : filterDate}`} value={formatRupiah(stats.todayValue)} icon={TrendingUp} accent />
       </div>
 
-      <div className="flex items-center justify-between bg-muted/50 rounded-lg px-4 py-2">
-        <button onClick={prevMonth} className="p-1 rounded hover:bg-muted">
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <div className="text-center">
-          <p className="text-xs text-muted-foreground">Total Bulan</p>
-          <p className="text-sm font-semibold">{monthNames[selectedMonth]} {selectedYear}</p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Periode Bulanan</p>
+        <div className="flex items-center gap-1">
+          <button onClick={prevMonth} className="p-1 rounded hover:bg-muted">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="text-sm font-semibold min-w-[80px] text-center">{monthNames[selectedMonth]} {selectedYear}</span>
+          <button onClick={nextMonth} disabled={isCurrentMonth} className="p-1 rounded hover:bg-muted disabled:opacity-30">
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
-        <button onClick={nextMonth} disabled={isCurrentMonth} className="p-1 rounded hover:bg-muted disabled:opacity-30">
-          <ChevronRight className="h-4 w-4" />
-        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -87,8 +104,7 @@ function SalesHome() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Link to="/sales/input"><Button className="w-full h-14 bg-gradient-primary hover:opacity-90"><PlusCircle className="h-5 w-5 mr-2" /> Input Penjualan</Button></Link>
-        <Link to="/sales/history"><Button variant="outline" className="w-full h-14"><History className="h-5 w-5 mr-2" /> Lihat Riwayat</Button></Link>
+
       </div>
     </div>
   );

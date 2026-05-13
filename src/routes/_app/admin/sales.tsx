@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Pencil } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,17 +26,31 @@ function AdminSales() {
 
   const load = async () => {
     setLoading(true);
-    const { data: profs } = await supabase.from("profiles").select("user_id, full_name, sales_code, email").order("sales_code", { nullsFirst: false });
+    const { data: profs } = await supabase.from("profiles").select("id, full_name, sales_code, email").order("sales_code", { nullsFirst: false });
     const { data: roles } = await supabase.from("user_roles").select("user_id, role");
     const map = new Map<string, string>();
     roles?.forEach((r) => {
       const cur = map.get(r.user_id);
       if (r.role === "admin" || !cur) map.set(r.user_id, r.role);
     });
-    setRows((profs ?? []).map((p) => ({ ...p, role: map.get(p.user_id) ?? "sales" })));
+    setRows((profs ?? []).map((p) => ({ ...p, user_id: p.id, role: map.get(p.id) ?? "sales" })));
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  const deleteUser = async (r: SalesRow) => {
+    if (!confirm(`Hapus akun ${r.full_name || r.email}? Semua data transaksinya akan tetap ada.`)) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ user_id: r.user_id }),
+    });
+    const result = await res.json();
+    if (!res.ok) return toast.error(result.error ?? "Gagal hapus akun");
+    toast.success("Akun berhasil dihapus");
+    load();
+  };
 
   const openNew = () => { setEdit(null); setForm({ email: "", password: "", full_name: "", sales_code: "", role: "sales" }); setOpen(true); };
   const openEdit = (r: SalesRow) => { setEdit(r); setForm({ email: r.email ?? "", password: "", full_name: r.full_name, sales_code: r.sales_code ?? "", role: r.role }); setOpen(true); };
@@ -45,7 +59,7 @@ function AdminSales() {
     if (edit) {
       const { error } = await supabase.from("profiles")
         .update({ full_name: form.full_name.trim(), sales_code: form.sales_code.trim() || null })
-        .eq("user_id", edit.user_id);
+        .eq("id", edit.user_id);
       if (error) return toast.error(error.message);
       toast.success("Profil diperbarui");
       setOpen(false);
@@ -55,20 +69,17 @@ function AdminSales() {
     if (!form.email || !form.password) return toast.error("Email & password wajib");
     if (form.password.length < 6) return toast.error("Password minimal 6 karakter");
 
-    const { data, error } = await supabase.auth.signUp({
-      email: form.email.trim(),
-      password: form.password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/login`,
-        data: { full_name: form.full_name.trim(), sales_code: form.sales_code.trim() || null, role: form.role },
-      },
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ email: form.email.trim(), password: form.password, full_name: form.full_name.trim(), sales_code: form.sales_code.trim() || null, role: form.role }),
     });
-    if (error) return toast.error(error.message);
+    const result = await res.json();
+    if (!res.ok) return toast.error(result.error ?? "Gagal membuat akun");
     toast.success("Akun berhasil dibuat");
-    if (data.session) await supabase.auth.signOut(); // important: sign out so admin remains logged in? Actually signUp signs in new user. We need to re-login admin.
     setOpen(false);
-    toast.info("Anda perlu login ulang sebagai admin", { duration: 6000 });
-    setTimeout(() => { window.location.href = "/login"; }, 1500);
+    load();
   };
 
   return (
@@ -119,7 +130,10 @@ function AdminSales() {
                 </div>
                 <p className="text-xs text-muted-foreground truncate">{r.email}</p>
               </div>
+              <div className="flex gap-1">
               <Button size="icon" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+              <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => deleteUser(r)}><Trash2 className="h-4 w-4" /></Button>
+            </div>
             </div>
           ))}
         </CardContent></Card>

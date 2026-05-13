@@ -10,8 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Camera, MapPin, Loader2, Plus, Minus, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatRupiah } from "@/lib/constants";
-import { savePendingTransaction } from "@/lib/offline-queue";
-import { syncPendingTransactions } from "@/lib/sync-pending";
 
 export const Route = createFileRoute("/_app/sales/input")({
   component: SalesInputPage,
@@ -42,23 +40,6 @@ function SalesInputPage() {
   const [notes, setNotes] = useState("");
   const [stockChecks, setStockChecks] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
-
-  // Auto-sync saat online
-  useEffect(() => {
-    const handleOnline = async () => {
-      const { getPendingCount } = await import("@/lib/offline-queue");
-      const pending = await getPendingCount();
-      if (pending > 0) {
-        toast.info(`Mengirim ${pending} transaksi offline...`);
-        const result = await syncPendingTransactions();
-        if (result.success > 0) toast.success(`${result.success} transaksi berhasil dikirim`);
-        if (result.failed > 0) toast.error(`${result.failed} transaksi gagal dikirim`);
-      }
-    };
-    window.addEventListener("online", handleOnline);
-    if (navigator.onLine) handleOnline();
-    return () => window.removeEventListener("online", handleOnline);
-  }, []);
 
   // Init stockChecks saat products loaded (hanya untuk produk baru, tidak timpa yg sudah ada)
   useEffect(() => {
@@ -161,26 +142,6 @@ function SalesInputPage() {
     if (!storeName.trim()) return toast.error("Nama toko wajib diisi");
     if (!storeAddress.trim()) return toast.error("Alamat toko wajib diisi");
     if (items.length === 0) return toast.error("Minimal satu produk harus diisi");
-
-    if (!navigator.onLine) {
-      try {
-        await savePendingTransaction({
-          userId: user.id,
-          salesCode: profile?.sales_code ?? null,
-          salesName: profile?.full_name ?? null,
-          storeName, storeAddress, dateStr, timeStr,
-          lat: coords?.lat ?? null, lng: coords?.lng ?? null,
-          photoBase64, photoMime, grandTotal, stockNotesValue,
-          items: items.map(it => ({ id: it.id, name: it.name, quantity: it.quantity, price_per_pcs: it.price_per_pcs, subtotal: it.subtotal })),
-        });
-        sessionStorage.removeItem("pendingPhoto");
-        toast.success("Tersimpan offline", { description: "Akan otomatis dikirim saat ada sinyal" });
-        navigate({ to: "/sales/history" });
-      } catch (err: any) {
-        toast.error("Gagal menyimpan offline", { description: err.message });
-      }
-      return;
-    }
     
     if (!photoBase64) return toast.error("Foto toko wajib diambil");
 
