@@ -42,6 +42,7 @@ function SalesInputPage() {
   const [notes, setNotes] = useState("");
   const [stockChecks, setStockChecks] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [stockError, setStockError] = useState(false);
 
   // Auto-sync saat online
   useEffect(() => {
@@ -160,6 +161,12 @@ function SalesInputPage() {
     if (!user) return;
     if (!storeName.trim()) return toast.error("Nama toko wajib diisi");
     if (!storeAddress.trim()) return toast.error("Alamat toko wajib diisi");
+    const hasStock = Object.values(stockChecks).some(Boolean);
+    if (!hasStock) {
+      setStockError(true);
+      return toast.error("Stok di toko wajib diisi", { description: "Pilih minimal satu produk yang ada di toko" });
+    }
+    setStockError(false);
     if (items.length === 0) return toast.error("Minimal satu produk harus diisi");
 
     if (!navigator.onLine) {
@@ -361,12 +368,15 @@ function SalesInputPage() {
       </Card>
 
       {/* Stok di Toko */}
-      <Card className="shadow-soft">
-        <CardHeader className="pb-3"><CardTitle className="text-base">Stok di Toko <span className="text-destructive text-sm">*</span></CardTitle></CardHeader>
+      <Card className={`shadow-soft ${stockError ? "border-destructive border-2" : ""}`}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Stok di Toko <span className="text-destructive text-sm">*</span></CardTitle>
+          {stockError && <p className="text-xs text-destructive mt-1">Pilih minimal satu produk yang ada di toko</p>}
+        </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1">
             {products.map((p) => (
-              <label key={p.id} className="flex items-center gap-2 cursor-pointer py-1">
+              <label key={p.id} className="flex items-center gap-2 cursor-pointer py-1" onClick={() => setStockError(false)}>
                 <input
                   type="checkbox"
                   checked={stockChecks[p.id] ?? false}
