@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_app/sales/")({
 function SalesHome() {
   const { user, profile } = useAuth();
   const now = new Date();
-  const [filterDate, setFilterDate] = useState(now.toISOString().slice(0, 10));
+  const [filterDate, setFilterDate] = useState(now.toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" }));
   const [showCal, setShowCal] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
@@ -73,7 +73,7 @@ function SalesHome() {
           </button>
           {showCal && (
             <div className="absolute right-0 top-7 z-50 bg-popover border rounded-lg shadow-lg p-2">
-              <input type="date" value={filterDate} max={now.toISOString().slice(0,10)}
+              <input type="date" value={filterDate} max={now.toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" })}
                 onChange={(e) => { setFilterDate(e.target.value); setShowCal(false); }}
                 className="text-sm border rounded px-2 py-1" />
             </div>
@@ -81,8 +81,8 @@ function SalesHome() {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <StatCard label={`Transaksi ${filterDate === now.toISOString().slice(0,10) ? "Hari Ini" : filterDate}`} value={stats.today.toString()} icon={ShoppingCart} accent />
-        <StatCard label={`Nilai ${filterDate === now.toISOString().slice(0,10) ? "Hari Ini" : filterDate}`} value={formatRupiah(stats.todayValue)} icon={TrendingUp} accent />
+        <StatCard label={`Transaksi ${filterDate === now.toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" }) ? "Hari Ini" : filterDate}`} value={stats.today.toString()} icon={ShoppingCart} accent />
+        <StatCard label={`Nilai ${filterDate === now.toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" }) ? "Hari Ini" : filterDate}`} value={formatRupiah(stats.todayValue)} icon={TrendingUp} accent />
       </div>
 
       <div className="flex items-center justify-between">

@@ -33,7 +33,7 @@ function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<string | null>(null);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" });
   const [dateFrom, setDateFrom] = useState(today);
   const [dateTo, setDateTo] = useState(today);
   const [storeName, setStoreName] = useState("");

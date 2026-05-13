@@ -14,7 +14,7 @@ const MONTHS = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov
 
 function AdminHome() {
   const now = new Date();
-  const [filterDate, setFilterDate] = useState(now.toISOString().slice(0, 10));
+  const [filterDate, setFilterDate] = useState(now.toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" }));
   const [showCal, setShowCal] = useState(false);
   const [filterMonth, setFilterMonth] = useState(now.getMonth());
   const [filterYear, setFilterYear] = useState(now.getFullYear());
@@ -69,7 +69,7 @@ function AdminHome() {
           </button>
           {showCal && (
             <div className="absolute right-0 top-7 z-50 bg-popover border rounded-lg shadow-lg p-2">
-              <input type="date" value={filterDate} max={now.toISOString().slice(0,10)}
+              <input type="date" value={filterDate} max={now.toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" })}
                 onChange={(e) => { setFilterDate(e.target.value); setShowCal(false); }}
                 className="text-sm border rounded px-2 py-1" />
             </div>
@@ -77,8 +77,8 @@ function AdminHome() {
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <Stat label={`Transaksi ${filterDate === now.toISOString().slice(0,10) ? "Hari Ini" : filterDate}`} value={s.today.toString()} icon={ShoppingCart} accent />
-        <Stat label={`Nilai ${filterDate === now.toISOString().slice(0,10) ? "Hari Ini" : filterDate}`} value={formatRupiah(s.todayValue)} icon={TrendingUp} accent />
+        <Stat label={`Transaksi ${filterDate === now.toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" }) ? "Hari Ini" : filterDate}`} value={s.today.toString()} icon={ShoppingCart} accent />
+        <Stat label={`Nilai ${filterDate === now.toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" }) ? "Hari Ini" : filterDate}`} value={formatRupiah(s.todayValue)} icon={TrendingUp} accent />
         <Stat label="Total Sales" value={s.sales.toString()} icon={Users} />
         <div className="col-span-2 md:col-span-3">
           <div className="flex items-center justify-between mb-2">
