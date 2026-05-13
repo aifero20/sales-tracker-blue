@@ -1,4 +1,4 @@
-const CACHE = "binowo-v2";
+const CACHE = "binowo-v3";
 
 self.addEventListener("install", (e) => {
   e.waitUntil(self.skipWaiting());
