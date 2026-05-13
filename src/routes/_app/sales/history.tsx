@@ -38,6 +38,8 @@ function HistoryPage() {
   const [dateTo, setDateTo] = useState(today);
   const [storeName, setStoreName] = useState("");
   const [showFilter, setShowFilter] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     if (!user) return;
@@ -61,10 +63,28 @@ function HistoryPage() {
       if (!error) setRows(result);
       setLoading(false);
     })();
+    setPage(1);
   }, [user, dateFrom, dateTo, storeName]);
 
   const isDefaultFilter = dateFrom === today && dateTo === today && storeName === "";
-  const resetFilter = () => { setDateFrom(today); setDateTo(today); setStoreName(""); };
+  const resetFilter = () => { setDateFrom(today); setDateTo(today); setStoreName(""); setPage(1); };
+
+  const totalPages = Math.ceil(rows.length / PAGE_SIZE);
+  const paginatedRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (page > 3) pages.push("...");
+      for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
+      if (page < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   const totalAll = rows.reduce((s, r) => s + r.total_amount, 0);
   const labelPeriode = dateFrom === dateTo
@@ -125,7 +145,20 @@ function HistoryPage() {
         </CardContent></Card>
       ) : (
         <div className="space-y-2">
-          {rows.map((r) => {
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-1 flex-wrap py-1">
+              <Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage(p => p - 1)} className="text-xs px-2">← Prev</Button>
+              {getPageNumbers().map((p, i) =>
+                p === "..." ? (
+                  <span key={i} className="px-1 text-muted-foreground text-sm">…</span>
+                ) : (
+                  <Button key={i} size="sm" variant={page === p ? "default" : "outline"} onClick={() => setPage(Number(p))} className="text-xs w-8 h-8 p-0">{p}</Button>
+                )
+              )}
+              <Button size="sm" variant="outline" disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className="text-xs px-2">Next →</Button>
+            </div>
+          )}
+          {paginatedRows.map((r) => {
             const isOpen = open === r.id;
             return (
               <Card key={r.id} className="shadow-soft overflow-hidden">
@@ -172,6 +205,19 @@ function HistoryPage() {
               </Card>
             );
           })}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-1 flex-wrap py-1">
+              <Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage(p => p - 1)} className="text-xs px-2">← Prev</Button>
+              {getPageNumbers().map((p, i) =>
+                p === "..." ? (
+                  <span key={i} className="px-1 text-muted-foreground text-sm">…</span>
+                ) : (
+                  <Button key={i} size="sm" variant={page === p ? "default" : "outline"} onClick={() => setPage(Number(p))} className="text-xs w-8 h-8 p-0">{p}</Button>
+                )
+              )}
+              <Button size="sm" variant="outline" disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className="text-xs px-2">Next →</Button>
+            </div>
+          )}
         </div>
       )}
     </div>
