@@ -81,8 +81,8 @@ function SalesInputPage() {
   })();
 
   const now = new Date();
-  const dateStr = now.toISOString().slice(0, 10);
-  const timeStr = now.toTimeString().slice(0, 8);
+  const dateStr = now.toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" });
+  const timeStr = now.toLocaleTimeString("en-GB", { timeZone: "Asia/Jakarta", hour12: false });
 
   useEffect(() => {
     (async () => {
