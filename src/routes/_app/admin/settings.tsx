@@ -60,7 +60,7 @@ function AdminSettings() {
           <div className="text-xs text-muted-foreground space-y-1 bg-muted/40 p-3 rounded">
             <p className="font-semibold text-foreground">Cara setup:</p>
             <p>1. Buat spreadsheet baru di Google Sheets</p>
-            <p>2. Sheet akan otomatis dibuat dengan nama <code className="text-foreground">Transaksi {tahun}</code> dan <code className="text-foreground">Items {tahun}</code></p>
+            <p>2. Sheet akan otomatis dibuat dengan nama <code className="text-foreground">Transaksi {new Date().getFullYear()}</code> dan <code className="text-foreground">Items {new Date().getFullYear()}</code></p>
             <p>3. Bagikan spreadsheet ke email service account (lihat di Supabase Edge Function secrets) dengan akses <code className="text-foreground">Editor</code></p>
             <p>4. Salin ID dari URL ke kolom di atas</p>
           </div>
