@@ -28,7 +28,7 @@ function Analytics() {
     (async () => {
       const [{ data: i }, { data: t }] = await Promise.all([
         supabase.from("transaction_items").select("product_name, quantity, subtotal, transaction_id"),
-        supabase.from("sales_transactions").select("id, transaction_date, total_amount, sales_code"),
+        supabase.from("sales_transactions").select("id, transaction_date, total_amount, sales_code, notes, stores(name)"),
       ]);
       setItems(i ?? []);
       setTx(t ?? []);
@@ -101,6 +101,31 @@ function Analytics() {
   }, [filteredTx, filteredItems]);
 
   const totalPenjualan = useMemo(() => filteredTx.reduce((s, r) => s + (r.total_amount || 0), 0), [filteredTx]);
+
+  // Daftar semua produk dari cigarette_products (statis sesuai GSheet)
+  const PRODUCT_LIST = ["Daun12","Daun16","Refill12","Sigara12","Sultan16","Inggil16","Starlet16","Angsal16","Berry16","Korek"];
+
+  const distribusiStok = useMemo(() => {
+    return PRODUCT_LIST.map((produk) => {
+      const tokoAda: string[] = [];
+      const tokoTidakAda: string[] = [];
+      filteredTx.forEach((r) => {
+        const storeName = (r.stores as any)?.name ?? "—";
+        const notes: string = r.notes ?? "";
+        if (notes === "Tidak ada" || notes.trim() === "") {
+          tokoTidakAda.push(storeName);
+        } else {
+          const prodList = notes.split(",").map((s: string) => s.trim().toLowerCase());
+          if (prodList.includes(produk.toLowerCase())) {
+            tokoAda.push(storeName);
+          } else {
+            tokoTidakAda.push(storeName);
+          }
+        }
+      });
+      return { produk, ada: tokoAda.length, tokoAda, tokoTidakAda };
+    });
+  }, [filteredTx]);
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
@@ -209,6 +234,44 @@ function Analytics() {
               </div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+      <Card className="shadow-soft">
+        <CardHeader>
+          <CardTitle className="text-base">Distribusi Stok Rokok per Toko</CardTitle>
+          <p className="text-xs text-muted-foreground">Berdasarkan stok yang dilaporkan sales saat kunjungan</p>
+        </CardHeader>
+        <CardContent>
+          {filteredTx.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Tidak ada data untuk filter ini</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 pr-3 font-medium text-xs text-muted-foreground w-6">No</th>
+                    <th className="text-left py-2 pr-3 font-medium text-xs text-muted-foreground">Nama Rokok</th>
+                    <th className="text-center py-2 pr-3 font-medium text-xs text-muted-foreground whitespace-nowrap">Jml Toko<br/>(Stok Tersedia)</th>
+                    <th className="text-left py-2 font-medium text-xs text-muted-foreground">Daftar Toko</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {distribusiStok.map((row, i) => (
+                    <tr key={row.produk} className={i % 2 === 0 ? "bg-muted/20" : ""}>
+                      <td className="py-2 pr-3 text-xs text-muted-foreground align-top">{i + 1}</td>
+                      <td className="py-2 pr-3 font-medium align-top">{row.produk}</td>
+                      <td className="py-2 pr-3 text-center align-top">
+                        <span className={`font-bold text-base ${row.ada > 0 ? "text-green-600" : "text-red-500"}`}>{row.ada}</span>
+                      </td>
+                      <td className="py-2 text-xs text-muted-foreground align-top">
+                        {row.tokoAda.length > 0 ? row.tokoAda.join(", ") : <span className="italic">—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
