@@ -14,7 +14,6 @@ export const Route = createFileRoute("/_app/admin/settings")({
 
 function AdminSettings() {
   const [sheetId, setSheetId] = useState("");
-  const [folderId, setFolderId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -23,7 +22,6 @@ function AdminSettings() {
       const { data } = await supabase.from("app_settings").select("*").eq("id", 1).single();
       if (data) {
         setSheetId(data.google_spreadsheet_id ?? "");
-        setFolderId(data.google_drive_folder_id ?? "");
       }
       setLoading(false);
     })();
@@ -33,7 +31,6 @@ function AdminSettings() {
     setSaving(true);
     const { error } = await supabase.from("app_settings").update({
       google_spreadsheet_id: sheetId.trim() || null,
-      google_drive_folder_id: folderId.trim() || null,
       updated_at: new Date().toISOString(),
     }).eq("id", 1);
     setSaving(false);
@@ -47,7 +44,7 @@ function AdminSettings() {
     <div className="space-y-4 max-w-2xl">
       <div>
         <h1 className="text-2xl font-bold">Pengaturan Integrasi</h1>
-        <p className="text-sm text-muted-foreground">Hubungkan ke Google Spreadsheet & Drive Anda</p>
+        <p className="text-sm text-muted-foreground">Hubungkan ke Google Spreadsheet Anda</p>
       </div>
 
       <Card className="shadow-soft">
@@ -70,18 +67,7 @@ function AdminSettings() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-soft">
-        <CardHeader><CardTitle className="text-base">Google Drive (Foto Toko)</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <Label>Folder ID (opsional)</Label>
-            <Input value={folderId} onChange={(e) => setFolderId(e.target.value)} placeholder="kosongkan untuk root Drive" />
-            <p className="text-xs text-muted-foreground mt-1">
-              Dari URL folder: <code>drive.google.com/drive/folders/<b>FOLDER_ID</b></code>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+
 
       <Button onClick={save} disabled={saving} className="bg-gradient-primary">
         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Simpan Pengaturan"}
