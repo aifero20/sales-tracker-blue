@@ -245,6 +245,7 @@ function SalesInputPage() {
         transaction_id: tx.id,
         product_id: it.id,
         product_name: it.name,
+        sales_code: profile?.sales_code ?? null,
         quantity: it.quantity,
         unit_price: it.price_per_pcs,
         subtotal: it.subtotal,
