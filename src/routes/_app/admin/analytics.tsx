@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Search } from "lucide-react";
 import { formatRupiah } from "@/lib/constants";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Cell, Legend } from "recharts";
 
 export const Route = createFileRoute("/_app/admin/analytics")({
   component: Analytics,
@@ -18,7 +18,7 @@ function Analytics() {
   const [items, setItems] = useState<any[]>([]);
   const [tx, setTx] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" });
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
   const [showFilter, setShowFilter] = useState(false);
@@ -44,11 +44,39 @@ function Analytics() {
     return items.filter((it) => ids.has(it.transaction_id));
   }, [items, filteredTx]);
 
+  const allProducts = useMemo(() => {
+    const s = new Set<string>();
+    filteredItems.forEach((it) => s.add(it.product_name));
+    return Array.from(s).sort();
+  }, [filteredItems]);
+
+  const productColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    byProduct.forEach((p, i) => { map[p.name] = COLORS[i % COLORS.length]; });
+    return map;
+  }, [byProduct]);
+
   const bySales = useMemo(() => {
-    const m = new Map<string, number>();
-    filteredTx.forEach((r) => m.set(r.sales_code || "—", (m.get(r.sales_code || "—") ?? 0) + (r.total_amount || 0)));
-    return Array.from(m.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  }, [filteredTx]);
+    const m = new Map<string, Record<string, number>>();
+    filteredTx.forEach((r) => {
+      if (!m.has(r.sales_code || "—")) m.set(r.sales_code || "—", {});
+    });
+    filteredItems.forEach((it) => {
+      const txRow = filteredTx.find((r) => r.id === it.transaction_id);
+      if (!txRow) return;
+      const key = txRow.sales_code || "—";
+      const entry = m.get(key) ?? {};
+      entry[it.product_name] = (entry[it.product_name] ?? 0) + (it.subtotal || 0);
+      m.set(key, entry);
+    });
+    return Array.from(m.entries())
+      .map(([name, products]) => ({ name, ...products }))
+      .sort((a, b) => {
+        const sumA = Object.entries(a).filter(([k]) => k !== "name").reduce((s, [, v]) => s + (v as number), 0);
+        const sumB = Object.entries(b).filter(([k]) => k !== "name").reduce((s, [, v]) => s + (v as number), 0);
+        return sumB - sumA;
+      });
+  }, [filteredTx, filteredItems]);
 
   const byDate = useMemo(() => {
     const m = new Map<string, number>();
@@ -130,13 +158,19 @@ function Analytics() {
       <Card className="shadow-soft">
         <CardHeader><CardTitle className="text-base">Penjualan per Sales</CardTitle></CardHeader>
         <CardContent>
-          <div className="h-64">
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={bySales}>
                 <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: any) => formatRupiah(v)} contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                <Bar dataKey="value" fill="#1f6feb" radius={[6, 6, 0, 0]} />
+                <Tooltip
+                  formatter={(v: any, name: string) => [formatRupiah(v), name]}
+                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                {allProducts.map((prod) => (
+                  <Bar key={prod} dataKey={prod} stackId="a" fill={productColorMap[prod] ?? "#888"}
+                    radius={allProducts.indexOf(prod) === allProducts.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
+                ))}
               </BarChart>
             </ResponsiveContainer>
           </div>
