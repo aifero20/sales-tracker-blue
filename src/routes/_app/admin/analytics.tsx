@@ -44,6 +44,21 @@ function Analytics() {
     return items.filter((it) => ids.has(it.transaction_id));
   }, [items, filteredTx]);
 
+  const byDate = useMemo(() => {
+    const m = new Map<string, number>();
+    filteredTx.forEach((r) => m.set(r.transaction_date, (m.get(r.transaction_date) ?? 0) + (r.total_amount || 0)));
+    return Array.from(m.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([date, total]) => ({ date: date.slice(5), total }));
+  }, [filteredTx]);
+
+  const byProduct = useMemo(() => {
+    const m = new Map<string, { qty: number; value: number }>();
+    filteredItems.forEach((it) => {
+      const cur = m.get(it.product_name) ?? { qty: 0, value: 0 };
+      m.set(it.product_name, { qty: cur.qty + (it.quantity || 0), value: cur.value + (it.subtotal || 0) });
+    });
+    return Array.from(m.entries()).map(([name, v]) => ({ name, qty: v.qty, value: v.value })).sort((a, b) => b.value - a.value);
+  }, [filteredItems]);
+
   const allProducts = useMemo(() => {
     const s = new Set<string>();
     filteredItems.forEach((it) => s.add(it.product_name));
@@ -77,21 +92,6 @@ function Analytics() {
         return sumB - sumA;
       });
   }, [filteredTx, filteredItems]);
-
-  const byDate = useMemo(() => {
-    const m = new Map<string, number>();
-    filteredTx.forEach((r) => m.set(r.transaction_date, (m.get(r.transaction_date) ?? 0) + (r.total_amount || 0)));
-    return Array.from(m.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([date, total]) => ({ date: date.slice(5), total }));
-  }, [filteredTx]);
-
-  const byProduct = useMemo(() => {
-    const m = new Map<string, { qty: number; value: number }>();
-    filteredItems.forEach((it) => {
-      const cur = m.get(it.product_name) ?? { qty: 0, value: 0 };
-      m.set(it.product_name, { qty: cur.qty + (it.quantity || 0), value: cur.value + (it.subtotal || 0) });
-    });
-    return Array.from(m.entries()).map(([name, v]) => ({ name, qty: v.qty, value: v.value })).sort((a, b) => b.value - a.value);
-  }, [filteredItems]);
 
   const totalPenjualan = useMemo(() => filteredTx.reduce((s, r) => s + (r.total_amount || 0), 0), [filteredTx]);
 
