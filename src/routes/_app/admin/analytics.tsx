@@ -22,6 +22,7 @@ function Analytics() {
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
   const [showFilter, setShowFilter] = useState(false);
+  const [salesCode, setSalesCode] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -35,9 +36,15 @@ function Analytics() {
     })();
   }, []);
 
+  const allSalesCodes = useMemo(() => {
+    const s = new Set<string>();
+    tx.forEach((r) => s.add(r.sales_code || "—"));
+    return Array.from(s).sort();
+  }, [tx]);
+
   const filteredTx = useMemo(() =>
-    tx.filter((r) => r.transaction_date >= fromDate && r.transaction_date <= toDate),
-    [tx, fromDate, toDate]);
+    tx.filter((r) => r.transaction_date >= fromDate && r.transaction_date <= toDate && (salesCode === "" || r.sales_code === salesCode)),
+    [tx, fromDate, toDate, salesCode]);
 
   const filteredItems = useMemo(() => {
     const ids = new Set(filteredTx.map((r) => r.id));
@@ -81,7 +88,7 @@ function Analytics() {
       if (!txRow) return;
       const key = txRow.sales_code || "—";
       const entry = m.get(key) ?? {};
-      entry[it.product_name] = (entry[it.product_name] ?? 0) + (it.subtotal || 0);
+      entry[it.product_name] = (entry[it.product_name] ?? 0) + (it.quantity || 0);
       m.set(key, entry);
     });
     return Array.from(m.entries())
@@ -128,9 +135,17 @@ function Analytics() {
                   onChange={e => setToDate(e.target.value)}
                   className="h-8 text-sm w-36" />
               </div>
-              {(fromDate !== today || toDate !== today) && (
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Sales</span>
+                <select value={salesCode} onChange={e => setSalesCode(e.target.value)}
+                  className="h-8 text-sm border rounded px-2 bg-background text-foreground">
+                  <option value="">Semua</option>
+                  {allSalesCodes.map(c => <option key={c} value={c === "—" ? "" : c}>{c}</option>)}
+                </select>
+              </div>
+              {(fromDate !== today || toDate !== today || salesCode !== "") && (
                 <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive"
-                  onClick={() => { setFromDate(today); setToDate(today); }}>
+                  onClick={() => { setFromDate(today); setToDate(today); setSalesCode(""); }}>
                   Reset
                 </Button>
               )}
@@ -162,9 +177,9 @@ function Analytics() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={bySales}>
                 <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `${v}`} />
                 <Tooltip
-                  formatter={(v: any, name: string) => [formatRupiah(v), name]}
+                  formatter={(v: any, name: string) => [`${v} pcs`, name]}
                   contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 {allProducts.map((prod) => (
