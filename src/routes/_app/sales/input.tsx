@@ -167,6 +167,7 @@ function SalesInputPage() {
       return toast.error("Stok di toko wajib diisi", { description: "Pilih minimal satu produk yang ada di toko" });
     }
     setStockError(false);
+    if (!coords) return toast.error("Lokasi GPS wajib dideteksi", { description: "Tekan Refresh untuk mengambil ulang koordinat" });
     if (items.length === 0) return toast.error("Minimal satu produk harus diisi");
 
     if (!navigator.onLine) {
@@ -189,7 +190,7 @@ function SalesInputPage() {
       return;
     }
     
-    if (!photoBase64) return toast.error("Foto toko wajib diambil");
+
 
     setSubmitting(true);
     try {
@@ -296,7 +297,7 @@ function SalesInputPage() {
 
       {/* Foto & GPS */}
       <Card className="shadow-soft">
-        <CardHeader className="pb-3"><CardTitle className="text-base">Foto Toko & Lokasi</CardTitle></CardHeader>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Foto Toko & Lokasi <span className="text-xs font-normal text-muted-foreground">(opsional)</span></CardTitle></CardHeader>
         <CardContent className="space-y-3">
           {!photoBase64 && (
           <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-input rounded-md cursor-pointer bg-background hover:bg-accent overflow-hidden">
