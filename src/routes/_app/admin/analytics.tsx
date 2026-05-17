@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_app/admin/analytics")({
   component: Analytics,
 });
 
-const COLORS = ["#1f6feb","#3b82f6","#06b6d4","#8b5cf6","#10b981","#f59e0b","#ef4444","#ec4899","#14b8a6","#a855f7"];
+const COLORS = ["#2563eb","#16a34a","#dc2626","#d97706","#7c3aed","#0891b2","#db2777","#65a30d","#ea580c","#6d28d9"];
 
 function Analytics() {
   const [items, setItems] = useState<any[]>([]);
@@ -200,16 +200,21 @@ function Analytics() {
         <CardContent>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={bySales}>
+              <BarChart data={bySales} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `${v}`} />
                 <Tooltip
                   formatter={(v: any, name: string) => [`${v} pcs`, name]}
-                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
+                  contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                  labelStyle={{ fontWeight: 600, marginBottom: 4 }}
+                  itemStyle={{ color: "hsl(var(--foreground))" }} />
+                <Legend
+                  wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                  formatter={(value) => <span style={{ color: "hsl(var(--foreground))", fontSize: 11 }}>{value}</span>} />
                 {allProducts.map((prod) => (
                   <Bar key={prod} dataKey={prod} stackId="a" fill={productColorMap[prod] ?? "#888"}
-                    radius={allProducts.indexOf(prod) === allProducts.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
+                    radius={allProducts.indexOf(prod) === allProducts.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}>
+                  </Bar>
                 ))}
               </BarChart>
             </ResponsiveContainer>
