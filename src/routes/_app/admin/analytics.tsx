@@ -213,8 +213,8 @@ function Analytics() {
                   formatter={(value) => <span style={{ color: "hsl(var(--foreground))", fontSize: 11 }}>{value}</span>} />
                 {allProducts.map((prod) => (
                   <Bar key={prod} dataKey={prod} stackId="a" fill={productColorMap[prod] ?? "#888"}
-                    radius={allProducts.indexOf(prod) === allProducts.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}>
-                  </Bar>
+                    radius={allProducts.indexOf(prod) === allProducts.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                    label={false} />
                 ))}
               </BarChart>
             </ResponsiveContainer>
