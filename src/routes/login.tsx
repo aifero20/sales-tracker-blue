@@ -28,10 +28,31 @@ function LoginPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const { error } = await signIn(email.trim(), password);
+
+    // Retry otomatis hingga 3x saat sinyal lemah
+    let lastError: string | null = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      if (attempt > 1) {
+        toast.info(`Sinyal lemah, mencoba ulang... (${attempt}/3)`);
+        await new Promise(r => setTimeout(r, 2000 * attempt));
+      }
+      const { error } = await signIn(email.trim(), password);
+      if (!error) {
+        setSubmitting(false);
+        toast.success("Berhasil masuk");
+        return;
+      }
+      lastError = error;
+      // Jika bukan masalah jaringan, langsung berhenti retry
+      if (!error.toLowerCase().includes("fetch") &&
+          !error.toLowerCase().includes("network") &&
+          !error.toLowerCase().includes("failed")) {
+        break;
+      }
+    }
+
     setSubmitting(false);
-    if (error) toast.error("Login gagal", { description: error });
-    else toast.success("Berhasil masuk");
+    toast.error("Login gagal", { description: lastError ?? "Periksa koneksi internet Anda" });
   };
 
   return (

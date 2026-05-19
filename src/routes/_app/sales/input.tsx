@@ -102,16 +102,36 @@ function SalesInputPage() {
       return;
     }
     setGpsLoading(true);
+    toast.info("Mendeteksi lokasi...", { duration: 3000 });
+
+    // Tahap 1: GPS presisi tinggi (30 detik)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setGpsLoading(false);
+        toast.success("Lokasi berhasil dideteksi");
       },
-      (err) => {
-        setGpsLoading(false);
-        toast.error("Gagal mengambil GPS", { description: err.message });
+      () => {
+        // Tahap 2: GPS presisi rendah (lebih cepat, cocok sinyal lemah)
+        toast.info("Sinyal GPS lemah, mencoba metode lain...", { duration: 3000 });
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+            setGpsLoading(false);
+            toast.success("Lokasi berhasil dideteksi (presisi rendah)");
+          },
+          () => {
+            // Tahap 3: Izinkan lanjut tanpa koordinat
+            setGpsLoading(false);
+            toast.warning("GPS tidak tersedia — lokasi tidak akan disimpan", {
+              description: "Anda tetap bisa melanjutkan input penjualan",
+              duration: 5000,
+            });
+          },
+          { enableHighAccuracy: false, timeout: 20000, maximumAge: 300000 }
+        );
       },
-      { enableHighAccuracy: true, timeout: 15000 }
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 60000 }
     );
   };
 
@@ -167,7 +187,7 @@ function SalesInputPage() {
       return toast.error("Stok di toko wajib diisi", { description: "Pilih minimal satu produk yang ada di toko" });
     }
     setStockError(false);
-    if (!coords) return toast.error("Lokasi GPS wajib dideteksi", { description: "Tekan Refresh untuk mengambil ulang koordinat" });
+    if (!coords) toast.warning("Transaksi disimpan tanpa koordinat GPS", { duration: 3000 });
     if (items.length === 0) return toast.error("Minimal satu produk harus diisi");
 
     if (!navigator.onLine) {
