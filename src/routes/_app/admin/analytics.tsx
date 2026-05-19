@@ -253,7 +253,7 @@ function Analytics() {
       )}
 
       <Card className="shadow-soft">
-        <CardHeader><CardTitle className="text-base">Penjualan per Tanggal</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">📈 Penjualan per Tanggal</CardTitle></CardHeader>
         <CardContent>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -269,7 +269,7 @@ function Analytics() {
       </Card>
 
       <Card className="shadow-soft">
-        <CardHeader><CardTitle className="text-base">Penjualan per Sales</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">📊 Penjualan per Sales</CardTitle></CardHeader>
         <CardContent>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -296,7 +296,7 @@ function Analytics() {
       </Card>
 
       <Card className="shadow-soft">
-        <CardHeader><CardTitle className="text-base">Top Produk (Nilai Penjualan)</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">🥇 Top Produk (Nilai Penjualan)</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-2">
             {byProduct.map((p, i) => (
@@ -316,7 +316,7 @@ function Analytics() {
       </Card>
       <Card className="shadow-soft">
         <CardHeader>
-          <CardTitle className="text-base">Distribusi Stok Rokok per Toko</CardTitle>
+          <CardTitle className="text-base">📦 Distribusi Stok Rokok per Toko</CardTitle>
           <p className="text-xs text-muted-foreground">Berdasarkan stok yang dilaporkan sales saat kunjungan</p>
         </CardHeader>
         <CardContent>
