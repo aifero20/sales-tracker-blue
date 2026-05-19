@@ -127,6 +127,79 @@ function Analytics() {
     });
   }, [filteredTx]);
 
+
+  // Papan peringkat sales
+  const peringkatSales = useMemo(() => {
+    const m = new Map<string, { total: number; transaksi: number; totalItem: number }>();
+    filteredTx.forEach((r) => {
+      const k = r.sales_code || "—";
+      const cur = m.get(k) ?? { total: 0, transaksi: 0, totalItem: 0 };
+      m.set(k, { total: cur.total + (r.total_amount || 0), transaksi: cur.transaksi + 1, totalItem: cur.totalItem });
+    });
+    filteredItems.forEach((it) => {
+      const txRow = filteredTx.find((r) => r.id === it.transaction_id);
+      if (!txRow) return;
+      const k = txRow.sales_code || "—";
+      const cur = m.get(k);
+      if (cur) m.set(k, { ...cur, totalItem: cur.totalItem + (it.quantity || 0) });
+    });
+    return Array.from(m.entries())
+      .map(([kode, v]) => ({ kode, ...v }))
+      .sort((a, b) => b.total - a.total);
+  }, [filteredTx, filteredItems]);
+
+  // Toko paling banyak belanja
+  const tokoTeratas = useMemo(() => {
+    const m = new Map<string, number>();
+    filteredTx.forEach((r) => {
+      const nama = (r.stores as any)?.name ?? "—";
+      m.set(nama, (m.get(nama) ?? 0) + (r.total_amount || 0));
+    });
+    return Array.from(m.entries())
+      .map(([nama, total]) => ({ nama, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+  }, [filteredTx]);
+
+  // Frekuensi kunjungan toko
+  const frekuensiToko = useMemo(() => {
+    const m = new Map<string, number>();
+    filteredTx.forEach((r) => {
+      const nama = (r.stores as any)?.name ?? "—";
+      m.set(nama, (m.get(nama) ?? 0) + 1);
+    });
+    const totalHari = Math.max(1,
+      Math.ceil((new Date(toDate).getTime() - new Date(fromDate).getTime()) / 86400000) + 1
+    );
+    const mingguan = totalHari / 7;
+    return Array.from(m.entries())
+      .map(([nama, kunjungan]) => {
+        const perMinggu = kunjungan / Math.max(1, mingguan);
+        const kategori = perMinggu >= 3 ? "Loyal" : perMinggu >= 1 ? "Reguler" : "Pasif";
+        return { nama, kunjungan, kategori };
+      })
+      .sort((a, b) => b.kunjungan - a.kunjungan);
+  }, [filteredTx, fromDate, toDate]);
+
+  // Produk terlaris per sales
+  const produkPerSales = useMemo(() => {
+    const m = new Map<string, Map<string, number>>();
+    filteredItems.forEach((it) => {
+      const txRow = filteredTx.find((r) => r.id === it.transaction_id);
+      if (!txRow) return;
+      const k = txRow.sales_code || "—";
+      if (!m.has(k)) m.set(k, new Map());
+      const prodMap = m.get(k)!;
+      prodMap.set(it.product_name, (prodMap.get(it.product_name) ?? 0) + (it.quantity || 0));
+    });
+    return Array.from(m.entries()).map(([kode, prodMap]) => ({
+      kode,
+      produk: Array.from(prodMap.entries())
+        .map(([nama, qty]) => ({ nama, qty }))
+        .sort((a, b) => b.qty - a.qty),
+    })).sort((a, b) => a.kode.localeCompare(b.kode));
+  }, [filteredTx, filteredItems]);
+
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
   return (
@@ -275,6 +348,127 @@ function Analytics() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* CHART: Papan Peringkat Sales */}
+      <Card className="shadow-soft">
+        <CardHeader>
+          <CardTitle className="text-base">🏆 Papan Peringkat Sales</CardTitle>
+          <p className="text-xs text-muted-foreground">Siapa yang paling aktif di periode ini?</p>
+        </CardHeader>
+        <CardContent>
+          {peringkatSales.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Tidak ada data</p>
+          ) : (
+            <div className="space-y-2">
+              {peringkatSales.map((s, i) => (
+                <div key={s.kode} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white ${i === 0 ? "bg-yellow-500" : i === 1 ? "bg-gray-400" : i === 2 ? "bg-amber-600" : "bg-muted-foreground"}`}>
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm">{s.kode}</p>
+                    <p className="text-xs text-muted-foreground">{s.transaksi} toko dikunjungi · {s.totalItem} pcs terjual</p>
+                  </div>
+                  <p className="font-bold text-sm text-primary">{formatRupiah(s.total)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* CHART: Toko Paling Banyak Belanja */}
+      <Card className="shadow-soft">
+        <CardHeader>
+          <CardTitle className="text-base">🏪 Toko Paling Banyak Belanja</CardTitle>
+          <p className="text-xs text-muted-foreground">10 toko dengan total pembelian tertinggi</p>
+        </CardHeader>
+        <CardContent>
+          {tokoTeratas.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Tidak ada data</p>
+          ) : (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={tokoTeratas} layout="vertical" margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+                  <YAxis type="category" dataKey="nama" stroke="hsl(var(--muted-foreground))" fontSize={10} width={80} />
+                  <Tooltip formatter={(v: any) => [formatRupiah(v), "Total Belanja"]}
+                    contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                  <Bar dataKey="total" fill="#2563eb" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* CHART: Frekuensi Kunjungan Toko */}
+      <Card className="shadow-soft">
+        <CardHeader>
+          <CardTitle className="text-base">🔄 Frekuensi Kunjungan Toko</CardTitle>
+          <p className="text-xs text-muted-foreground">Toko mana yang sering dikunjungi, mana yang mulai jarang?</p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="text-center p-2 rounded-lg bg-green-50 border border-green-200">
+              <p className="text-lg font-bold text-green-600">{frekuensiToko.filter(t => t.kategori === "Loyal").length}</p>
+              <p className="text-xs text-green-700 font-medium">🟢 Loyal</p>
+              <p className="text-xs text-muted-foreground">≥3x/minggu</p>
+            </div>
+            <div className="text-center p-2 rounded-lg bg-yellow-50 border border-yellow-200">
+              <p className="text-lg font-bold text-yellow-600">{frekuensiToko.filter(t => t.kategori === "Reguler").length}</p>
+              <p className="text-xs text-yellow-700 font-medium">🟡 Reguler</p>
+              <p className="text-xs text-muted-foreground">1-2x/minggu</p>
+            </div>
+            <div className="text-center p-2 rounded-lg bg-red-50 border border-red-200">
+              <p className="text-lg font-bold text-red-600">{frekuensiToko.filter(t => t.kategori === "Pasif").length}</p>
+              <p className="text-xs text-red-700 font-medium">🔴 Pasif</p>
+              <p className="text-xs text-muted-foreground">&lt;4x/bulan</p>
+            </div>
+          </div>
+          {frekuensiToko.filter(t => t.kategori === "Pasif").length > 0 && (
+            <div className="mt-2">
+              <p className="text-xs font-semibold text-red-600 mb-1">⚠️ Toko yang perlu perhatian:</p>
+              <div className="space-y-1">
+                {frekuensiToko.filter(t => t.kategori === "Pasif").slice(0, 5).map(t => (
+                  <div key={t.nama} className="flex justify-between text-xs p-1.5 rounded bg-red-50">
+                    <span className="font-medium">{t.nama}</span>
+                    <span className="text-muted-foreground">{t.kunjungan}x kunjungan</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* CHART: Produk Terlaris per Sales */}
+      <Card className="shadow-soft">
+        <CardHeader>
+          <CardTitle className="text-base">🔍 Produk Terlaris per Sales</CardTitle>
+          <p className="text-xs text-muted-foreground">Produk andalan masing-masing sales</p>
+        </CardHeader>
+        <CardContent>
+          {produkPerSales.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Tidak ada data</p>
+          ) : (
+            <div className="space-y-3">
+              {produkPerSales.map((s) => (
+                <div key={s.kode} className="p-3 rounded-lg border bg-muted/10">
+                  <p className="font-semibold text-sm mb-2">{s.kode}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {s.produk.slice(0, 3).map((p, i) => (
+                      <span key={p.nama} className={`text-xs px-2 py-0.5 rounded-full font-medium ${i === 0 ? "bg-primary text-primary-foreground" : i === 1 ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+                        {p.nama} ({p.qty} pcs)
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
