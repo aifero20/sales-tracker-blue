@@ -214,48 +214,87 @@ function Analytics() {
     })).sort((a, b) => a.kode.localeCompare(b.kode));
   }, [filteredTx, filteredItems]);
 
-  // ── NARASI ANALISA OTOMATIS ────────────────────────────────
+  // ── HIGHLIGHT (NARASI DINAMIS) ────────────────────────────
   const narasiAnalisa = useMemo(() => {
     if (filteredTx.length === 0) return null;
 
     const parts: string[] = [];
-    const periodeLabel = fromDate === toDate ? `tanggal ${fromDate}` : `periode ${fromDate} s/d ${toDate}`;
-
-    // Penjualan
+    const isHarian = fromDate === toDate;
+    const jumlahToko = new Set(filteredTx.map(r => (r.stores as any)?.name)).size;
     const totalTx = filteredTx.length;
+    const omzetRataHari = byDate.length > 0 ? Math.round(totalPenjualan / byDate.length) : totalPenjualan;
     const topSales = peringkatSales[0];
     const bottomSales = peringkatSales[peringkatSales.length - 1];
-    const topProduk = byProduct[0];
-    const omzetRataHari = byDate.length > 0 ? Math.round(totalPenjualan / byDate.length) : totalPenjualan;
-    parts.push(`Pada ${periodeLabel}, total penjualan mencapai ${formatRupiah(totalPenjualan)} dari ${totalTx} transaksi di ${new Set(filteredTx.map(r => (r.stores as any)?.name)).size} toko. Rata-rata omzet per hari sebesar ${formatRupiah(omzetRataHari)}.`);
+    const periodeLabel = isHarian ? `hari ini (${fromDate})` : `periode ${fromDate} s/d ${toDate}`;
 
-    // Top produk
+    // Filter produk valid — buang "Tidak ada" dan kosong
+    const validProducts = byProduct.filter(p => p.name && p.name.toLowerCase() !== "tidak ada" && p.name.trim() !== "");
+    const topProduk = validProducts[0];
+    const produkLemah = validProducts.slice(-3).reverse();
+
+    const selisihSales = peringkatSales.length > 1 ? peringkatSales[0].total - peringkatSales[1].total : 0;
+    const dominasiPersen = topProduk && totalPenjualan > 0 ? Math.round((topProduk.value / totalPenjualan) * 100) : 0;
+
+    // ── BLOK 1: Pembuka — kondisional berdasarkan sinyal terkuat ──
+    if (tokoNilaiTurun.length >= 3) {
+      const daftarTurun = tokoNilaiTurun.slice(0, 2).map(t => `${t.nama} (−${Math.abs(t.persen)}%)`).join(" dan ");
+      parts.push(`⚠️ Perhatian: ${tokoNilaiTurun.length} toko mencatat penurunan nilai belanja dibanding periode sebelumnya, termasuk ${daftarTurun}. Meski total omzet ${periodeLabel} mencapai ${formatRupiah(totalPenjualan)} dari ${totalTx} transaksi, sinyal ini perlu ditindaklanjuti segera.`);
+    } else if (!isHarian && omzetRataHari > 0) {
+      parts.push(`Selama ${periodeLabel}, omzet terkumpul ${formatRupiah(totalPenjualan)} dari ${totalTx} kunjungan ke ${jumlahToko} toko berbeda — rata-rata ${formatRupiah(omzetRataHari)} per hari aktif.`);
+    } else {
+      parts.push(`${isHarian ? "Hari ini" : "Dalam periode ini"} tercatat ${totalTx} transaksi di ${jumlahToko} toko, menghasilkan total penjualan ${formatRupiah(totalPenjualan)}.`);
+    }
+
+    // ── BLOK 2: Produk — bervariasi berdasarkan pola dominasi ──
     if (topProduk) {
-      const produkLemah = byProduct[byProduct.length - 1];
-      parts.push(`Produk terlaris adalah ${topProduk.name} dengan ${topProduk.qty} pcs terjual senilai ${formatRupiah(topProduk.value)}${produkLemah && produkLemah.name !== topProduk.name ? `, sementara ${produkLemah.name} menjadi produk dengan penjualan terendah (${produkLemah.qty} pcs)` : ""}.`);
+      if (dominasiPersen >= 40) {
+        const rekoCross = produkLemah[0] ? ` Peluang: dorong sales cross-sell ${produkLemah[0].name} (${produkLemah[0].qty} pcs) ke toko yang selama ini hanya beli ${topProduk.name}.` : "";
+        parts.push(`${topProduk.name} mendominasi ${dominasiPersen}% dari total omzet dengan ${topProduk.qty} pcs (${formatRupiah(topProduk.value)}) — ketergantungan tinggi pada satu produk bisa jadi risiko jika pasokan terganggu.${rekoCross}`);
+      } else if (produkLemah.length >= 2) {
+        const lemahList = produkLemah.map((p: any) => `${p.name} (${p.qty} pcs)`).join(", ");
+        parts.push(`${topProduk.name} memimpin dengan ${topProduk.qty} pcs senilai ${formatRupiah(topProduk.value)}. Produk dengan penjualan paling rendah: ${lemahList} — pertimbangkan strategi promosi atau kurangi order stok ketiganya.`);
+      } else {
+        parts.push(`Produk unggulan ${periodeLabel} adalah ${topProduk.name} dengan ${topProduk.qty} pcs terjual senilai ${formatRupiah(topProduk.value)}.`);
+      }
     }
 
-    // Manajemen sales
-    if (topSales) {
-      parts.push(`Di sisi kinerja sales, ${topSales.kode} memimpin dengan ${formatRupiah(topSales.total)} dari ${topSales.transaksi} kunjungan toko${peringkatSales.length > 1 ? `, diikuti ${peringkatSales[1]?.kode} dengan ${formatRupiah(peringkatSales[1]?.total)}` : ""}.${bottomSales && bottomSales.kode !== topSales.kode ? ` Perlu perhatian untuk ${bottomSales.kode} yang baru mencapai ${formatRupiah(bottomSales.total)} dari ${bottomSales.transaksi} kunjungan.` : ""}`);
+    // ── BLOK 3: Kinerja sales — bervariasi berdasarkan selisih ──
+    if (topSales && peringkatSales.length > 1) {
+      const runner = peringkatSales[1];
+      const bottomNote = bottomSales.kode !== topSales.kode
+        ? ` ${bottomSales.kode} perlu perhatian — baru ${formatRupiah(bottomSales.total)} dari ${bottomSales.transaksi} kunjungan.`
+        : "";
+      if (selisihSales < runner.total * 0.1) {
+        parts.push(`Persaingan ketat di papan atas: ${topSales.kode} unggul tipis atas ${runner.kode} dengan selisih hanya ${formatRupiah(selisihSales)}.${bottomNote}`);
+      } else if (selisihSales > totalPenjualan * 0.3) {
+        parts.push(`${topSales.kode} mendominasi ${periodeLabel} dengan ${formatRupiah(topSales.total)} dari ${topSales.transaksi} kunjungan — jauh melampaui ${runner.kode} di posisi dua (${formatRupiah(runner.total)}).${bottomNote}`);
+      } else {
+        parts.push(`${topSales.kode} memimpin dengan ${formatRupiah(topSales.total)} dari ${topSales.transaksi} kunjungan, diikuti ${runner.kode} (${formatRupiah(runner.total)}).${bottomNote}`);
+      }
+    } else if (topSales) {
+      parts.push(`${topSales.kode} satu-satunya sales aktif ${periodeLabel} dengan ${formatRupiah(topSales.total)} dari ${topSales.transaksi} kunjungan.`);
     }
 
-    // Distribusi toko
-    const tokoLoyalCount = frekuensiToko.filter(t => t.kategori === "Loyal").length;
-    const tokoPasifCount = frekuensiToko.filter(t => t.kategori === "Pasif").length;
-    const tokoPasifList = frekuensiToko.filter(t => t.kategori === "Pasif").slice(0, 3).map(t => t.nama).join(", ");
-    if (tokoLoyalCount > 0 || tokoPasifCount > 0) {
-      parts.push(`Dari sisi kunjungan toko, terdapat ${tokoLoyalCount} toko loyal yang rutin dikunjungi${tokoPasifCount > 0 ? ` dan ${tokoPasifCount} toko yang mulai jarang dikunjungi${tokoPasifList ? ` (${tokoPasifList})` : ""}. Toko-toko pasif ini perlu mendapat kunjungan prioritas segera` : ""}.`);
+    // ── BLOK 4: Distribusi toko — kondisional ──
+    const tokoPasif = frekuensiToko.filter(t => t.kategori === "Pasif");
+    const tokoLoyal = frekuensiToko.filter(t => t.kategori === "Loyal");
+    if (tokoPasif.length > 0 && tokoLoyal.length > 0) {
+      const pasifList = tokoPasif.length <= 3 ? ` (${tokoPasif.slice(0, 3).map(t => t.nama).join(", ")})` : "";
+      parts.push(`Pola kunjungan: ${tokoLoyal.length} toko loyal jadi tulang punggung distribusi, tapi ${tokoPasif.length} toko mulai jarang dikunjungi${pasifList}. Waspadai perpindahan ke kompetitor jika tidak segera ditindaklanjuti.`);
+    } else if (tokoPasif.length > 0) {
+      const pasifList = tokoPasif.length <= 3 ? `: ${tokoPasif.map(t => t.nama).join(", ")}` : "";
+      parts.push(`Ada ${tokoPasif.length} toko dengan frekuensi kunjungan rendah${pasifList}. Jadikan prioritas kunjungan berikutnya.`);
     }
 
-    // Toko nilai turun
-    if (tokoNilaiTurun.length > 0) {
-      const tokoTurunList = tokoNilaiTurun.slice(0, 2).map(t => `${t.nama} (turun ${Math.abs(t.persen)}%)`).join(" dan ");
-      parts.push(`⚠️ Perlu diwaspadai: ${tokoTurunList} menunjukkan penurunan nilai belanja dibanding periode sebelumnya. Sales yang bertanggung jawab di wilayah ini perlu melakukan pendekatan lebih intensif.`);
+    // ── BLOK 5: Fokus briefing — spesifik dan kontekstual ──
+    const rekoItems: string[] = [];
+    if (produkLemah[0]) rekoItems.push(`dorong cross-selling ${produkLemah[0].name} ke toko yang belum pernah membelinya`);
+    if (tokoPasif.length > 0) rekoItems.push(`kunjungi ${tokoPasif.length} toko pasif sebelum berpindah ke kompetitor`);
+    if (bottomSales && topSales && bottomSales.kode !== topSales.kode) rekoItems.push(`dampingi ${bottomSales.kode} untuk strategi closing lebih efektif`);
+    if (tokoNilaiTurun.length > 0) rekoItems.push(`investigasi penurunan di ${tokoNilaiTurun[0].nama}`);
+    if (rekoItems.length > 0) {
+      parts.push(`Fokus briefing: ${rekoItems.join("; ")}.`);
     }
-
-    // Rekomendasi briefing
-    parts.push(`Rekomendasi untuk briefing: fokuskan arahan pada peningkatan penjualan ${byProduct[byProduct.length - 1]?.name ?? "produk lemah"}, optimalkan kunjungan ke toko-toko pasif, dan dorong sales dengan kinerja rendah untuk mengejar ketertinggalan.`);
 
     return parts;
   }, [filteredTx, totalPenjualan, byDate, byProduct, peringkatSales, frekuensiToko, tokoNilaiTurun, fromDate, toDate]);
@@ -307,8 +346,8 @@ function Analytics() {
       {narasiAnalisa && (
         <Card className="shadow-soft border-primary/20 bg-primary/5">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">🤖 Analisa Otomatis</CardTitle>
-            <p className="text-xs text-muted-foreground">Ringkasan & bahan briefing pagi — diperbarui sesuai filter</p>
+            <CardTitle className="text-base">🔦 Highlight</CardTitle>
+            <p className="text-xs text-muted-foreground">Bahan briefing pagi — diperbarui sesuai filter</p>
           </CardHeader>
           <CardContent className="space-y-2">
             {narasiAnalisa.map((p, i) => (
