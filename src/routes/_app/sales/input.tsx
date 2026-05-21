@@ -104,7 +104,7 @@ function SalesInputPage() {
     setGpsLoading(true);
     toast.info("Mendeteksi lokasi...", { duration: 3000 });
 
-    // Tahap 1: GPS presisi tinggi (30 detik)
+    // Tahap 1: Cepat dulu — pakai cache + triangulasi BTS/WiFi (tidak nunggu satelit)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
@@ -112,26 +112,27 @@ function SalesInputPage() {
         toast.success("Lokasi berhasil dideteksi");
       },
       () => {
-        // Tahap 2: GPS presisi rendah (lebih cepat, cocok sinyal lemah)
-        toast.info("Sinyal GPS lemah, mencoba metode lain...", { duration: 3000 });
+        // Tahap 2: Cache habis — paksa GPS satelit presisi tinggi
+        toast.info("Mencoba GPS presisi tinggi...", { duration: 3000 });
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
             setGpsLoading(false);
-            toast.success("Lokasi berhasil dideteksi (presisi rendah)");
+            toast.success("Lokasi berhasil dideteksi");
           },
           () => {
-            // Tahap 3: Izinkan lanjut tanpa koordinat
+            // Tahap 3: Semua gagal — tetap bisa lanjut tanpa koordinat
             setGpsLoading(false);
             toast.warning("GPS tidak tersedia — lokasi tidak akan disimpan", {
               description: "Anda tetap bisa melanjutkan input penjualan",
               duration: 5000,
             });
           },
-          { enableHighAccuracy: false, timeout: 20000, maximumAge: 300000 }
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
       },
-      { enableHighAccuracy: true, timeout: 30000, maximumAge: 60000 }
+      // Pakai cache 5 menit + triangulasi jaringan — jauh lebih cepat dari satelit
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
     );
   };
 
