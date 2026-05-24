@@ -108,8 +108,7 @@ function SalesInputPage() {
     setGpsLoading(true);
     toast.info("Mendeteksi lokasi...", { duration: 3000 });
 
-    // Tahap 1: GPS satelit presisi tinggi + boleh pakai cache 5 menit
-    // Cache hanya dipakai kalau sebelumnya sudah dapat sinyal bagus — tetap akurat
+    // Tahap 1: GPS satelit presisi tinggi, tanpa cache, timeout 8 detik
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
@@ -117,30 +116,41 @@ function SalesInputPage() {
         toast.success("Lokasi berhasil dideteksi");
       },
       () => {
-        // Tahap 2: GPS gagal — coba triangulasi BTS/WiFi sebagai fallback
-        toast.info("Sinyal GPS lemah, mencoba metode alternatif...", { duration: 3000 });
+        // Tahap 2: Pakai cache 3 menit jika ada, lalu cari satelit lagi hingga 15 detik
+        toast.info("Mencoba ulang dengan cache...", { duration: 2000 });
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
             setGpsLoading(false);
-            toast.success("Lokasi dideteksi (perkiraan jaringan)", {
-              description: "Gunakan tombol Peta untuk koreksi jika perlu",
-              duration: 4000,
-            });
+            toast.success("Lokasi berhasil dideteksi");
           },
           () => {
-            // Tahap 3: Semua gagal — tetap bisa lanjut tanpa koordinat
-            setGpsLoading(false);
-            toast.warning("GPS tidak tersedia — lokasi tidak akan disimpan", {
-              description: "Gunakan tombol Peta untuk atur lokasi manual",
-              duration: 5000,
-            });
+            // Tahap 3: Fallback triangulasi BTS/WiFi
+            toast.info("Sinyal GPS lemah, mencoba jaringan...", { duration: 3000 });
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                setGpsLoading(false);
+                toast.success("Lokasi dideteksi (perkiraan jaringan)", {
+                  description: "Gunakan tombol Peta untuk koreksi jika perlu",
+                  duration: 4000,
+                });
+              },
+              () => {
+                // Tahap 4: Semua gagal
+                setGpsLoading(false);
+                toast.warning("GPS tidak tersedia — lokasi tidak akan disimpan", {
+                  description: "Gunakan tombol Peta untuk atur lokasi manual",
+                  duration: 5000,
+                });
+              },
+              { enableHighAccuracy: false, timeout: 10000, maximumAge: 180000 }
+            );
           },
-          { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 180000 }
         );
       },
-      // Presisi tinggi + cache 5 menit: akurat DAN cepat kalau sudah pernah dapat sinyal
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
   };
 
