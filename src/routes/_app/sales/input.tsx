@@ -530,7 +530,18 @@ function SalesInputPage() {
                   <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => dec(p.id)} disabled={q === 0}>
                     <Minus className="h-4 w-4" />
                   </Button>
-                  <span className="w-8 text-center font-semibold tabular-nums">{q}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={q === 0 ? "" : q}
+                    placeholder="0"
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      setQty(prev => ({ ...prev, [p.id]: isNaN(val) || val < 0 ? 0 : val }));
+                    }}
+                    onFocus={(e) => e.target.select()}
+                    className="w-12 text-center font-semibold tabular-nums text-sm border rounded-md h-8 bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
                   <Button type="button" size="icon" className="h-8 w-8 bg-gradient-primary" onClick={() => inc(p.id)}>
                     <Plus className="h-4 w-4" />
                   </Button>
