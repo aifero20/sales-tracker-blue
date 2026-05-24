@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Camera, MapPin, Loader2, Plus, Minus, Save, X, Map } from "lucide-react";
-import { useEffect, useRef as useMapRef } from "react";
 import { toast } from "sonner";
 import { formatRupiah } from "@/lib/constants";
 import { savePendingTransaction } from "@/lib/offline-queue";
@@ -34,9 +33,9 @@ function SalesInputPage() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [showMap, setShowMap] = useState(false);
-  const mapContainerRef = useMapRef<HTMLDivElement>(null);
-  const mapInstanceRef = useMapRef<any>(null);
-  const markerRef = useMapRef<any>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
 
   const [photoBase64, setPhotoBase64] = useState<string | null>(() => sessionStorage.getItem("pendingPhoto"));
   const [photoMime, setPhotoMime] = useState<string>("image/jpeg");
@@ -109,7 +108,8 @@ function SalesInputPage() {
     setGpsLoading(true);
     toast.info("Mendeteksi lokasi...", { duration: 3000 });
 
-    // Tahap 1: Cepat dulu — pakai cache + triangulasi BTS/WiFi (tidak nunggu satelit)
+    // Tahap 1: GPS satelit presisi tinggi + boleh pakai cache 5 menit
+    // Cache hanya dipakai kalau sebelumnya sudah dapat sinyal bagus — tetap akurat
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
@@ -117,27 +117,30 @@ function SalesInputPage() {
         toast.success("Lokasi berhasil dideteksi");
       },
       () => {
-        // Tahap 2: Cache habis — paksa GPS satelit presisi tinggi
-        toast.info("Mencoba GPS presisi tinggi...", { duration: 3000 });
+        // Tahap 2: GPS gagal — coba triangulasi BTS/WiFi sebagai fallback
+        toast.info("Sinyal GPS lemah, mencoba metode alternatif...", { duration: 3000 });
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
             setGpsLoading(false);
-            toast.success("Lokasi berhasil dideteksi");
+            toast.success("Lokasi dideteksi (perkiraan jaringan)", {
+              description: "Gunakan tombol Peta untuk koreksi jika perlu",
+              duration: 4000,
+            });
           },
           () => {
             // Tahap 3: Semua gagal — tetap bisa lanjut tanpa koordinat
             setGpsLoading(false);
             toast.warning("GPS tidak tersedia — lokasi tidak akan disimpan", {
-              description: "Anda tetap bisa melanjutkan input penjualan",
+              description: "Gunakan tombol Peta untuk atur lokasi manual",
               duration: 5000,
             });
           },
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
         );
       },
-      // Pakai cache 5 menit + triangulasi jaringan — jauh lebih cepat dari satelit
-      { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
+      // Presisi tinggi + cache 5 menit: akurat DAN cepat kalau sudah pernah dapat sinyal
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 }
     );
   };
 
