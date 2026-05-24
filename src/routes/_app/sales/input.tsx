@@ -540,7 +540,7 @@ function SalesInputPage() {
                       setQty(prev => ({ ...prev, [p.id]: isNaN(val) || val < 0 ? 0 : val }));
                     }}
                     onFocus={(e) => e.target.select()}
-                    className="w-12 text-center font-semibold tabular-nums text-sm border rounded-md h-8 bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-12 text-center font-semibold tabular-nums text-sm border rounded-md h-8 bg-background focus:outline-none focus:ring-2 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                   <Button type="button" size="icon" className="h-8 w-8 bg-gradient-primary" onClick={() => inc(p.id)}>
                     <Plus className="h-4 w-4" />
