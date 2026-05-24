@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera, MapPin, Loader2, Plus, Minus, Save, X } from "lucide-react";
+import { Camera, MapPin, Loader2, Plus, Minus, Save, X, Map } from "lucide-react";
+import { useEffect, useRef as useMapRef } from "react";
 import { toast } from "sonner";
 import { formatRupiah } from "@/lib/constants";
 import { savePendingTransaction } from "@/lib/offline-queue";
@@ -32,6 +33,10 @@ function SalesInputPage() {
 
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const mapContainerRef = useMapRef<HTMLDivElement>(null);
+  const mapInstanceRef = useMapRef<any>(null);
+  const markerRef = useMapRef<any>(null);
 
   const [photoBase64, setPhotoBase64] = useState<string | null>(() => sessionStorage.getItem("pendingPhoto"));
   const [photoMime, setPhotoMime] = useState<string>("image/jpeg");
@@ -163,6 +168,70 @@ function SalesInputPage() {
     };
     img.src = url;
   };
+
+  // Init Leaflet map saat showMap berubah jadi true
+  useEffect(() => {
+    if (!showMap || !mapContainerRef.current) return;
+    // Destroy map lama jika ada
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
+    // Default center: Kabupaten Madiun, Jawa Timur
+    const defaultLat = coords?.lat ?? -7.6298;
+    const defaultLng = coords?.lng ?? 111.5239;
+    const zoom = coords ? 16 : 12;
+
+    // Load Leaflet CSS
+    if (!document.getElementById("leaflet-css")) {
+      const link = document.createElement("link");
+      link.id = "leaflet-css";
+      link.rel = "stylesheet";
+      link.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
+      document.head.appendChild(link);
+    }
+
+    import("leaflet").then((L) => {
+      if (!mapContainerRef.current) return;
+      const map = L.default.map(mapContainerRef.current).setView([defaultLat, defaultLng], zoom);
+      L.default.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap",
+        maxZoom: 19,
+      }).addTo(map);
+
+      // Custom icon
+      const icon = L.default.divIcon({
+        html: `<div style="background:#2563eb;width:20px;height:20px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 20],
+        className: "",
+      });
+
+      const marker = L.default.marker([defaultLat, defaultLng], { icon, draggable: true }).addTo(map);
+      marker.bindPopup("Geser pin ke lokasi toko").openPopup();
+
+      marker.on("dragend", () => {
+        const pos = marker.getLatLng();
+        setCoords({ lat: pos.lat, lng: pos.lng });
+      });
+
+      map.on("click", (e: any) => {
+        marker.setLatLng(e.latlng);
+        setCoords({ lat: e.latlng.lat, lng: e.latlng.lng });
+      });
+
+      mapInstanceRef.current = map;
+      markerRef.current = marker;
+      setTimeout(() => map.invalidateSize(), 100);
+    });
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [showMap]);
 
   const filteredStores = stores.filter((s) => s.name.toLowerCase().includes(storeName.toLowerCase()) && storeName.length > 0).slice(0, 5);
 
@@ -354,10 +423,29 @@ function SalesInputPage() {
               <MapPin className="h-4 w-4 text-primary" />
               {gpsLoading ? "Mendeteksi GPS…" : coords ? `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}` : "GPS belum tersedia"}
             </div>
-            <Button type="button" size="sm" variant="ghost" onClick={requestGps} disabled={gpsLoading}>
-              {gpsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button type="button" size="sm" variant="ghost" onClick={requestGps} disabled={gpsLoading}>
+                {gpsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
+              </Button>
+              <Button type="button" size="sm" variant={showMap ? "default" : "outline"}
+                onClick={() => setShowMap(v => !v)}
+                className="flex items-center gap-1">
+                <Map className="h-3 w-3" />
+                <span className="text-xs">{showMap ? "Tutup" : "Peta"}</span>
+              </Button>
+            </div>
           </div>
+          {showMap && (
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Ketuk peta atau geser pin biru untuk atur lokasi toko</p>
+              <div ref={mapContainerRef} className="w-full rounded-lg border overflow-hidden" style={{ height: 280 }} />
+              {coords && (
+                <p className="text-xs text-center text-primary font-medium">
+                  ✅ Lokasi dipilih: {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
+                </p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
