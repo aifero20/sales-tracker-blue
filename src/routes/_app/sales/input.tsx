@@ -88,48 +88,16 @@ function SalesInputPage() {
   const dateStr = now.toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" });
   const timeStr = now.toLocaleTimeString("en-GB", { timeZone: "Asia/Jakarta", hour12: false });
 
-  const loadMasterData = async (attempt = 1) => {
-    try {
-      const [prodRes, storeRes] = await Promise.all([
+  useEffect(() => {
+    (async () => {
+      const [{ data: prod }, { data: st }] = await Promise.all([
         supabase.from("cigarette_products").select("id, name, price_per_pcs").eq("is_active", true).order("sort_order"),
         supabase.from("stores").select("id, name, address").order("name"),
       ]);
-      if (prodRes.error) throw prodRes.error;
-      if (storeRes.error) throw storeRes.error;
-
-      setProducts(prodRes.data ?? []);
-      setStores(storeRes.data ?? []);
-      try {
-        localStorage.setItem("cachedStoresV1", JSON.stringify(storeRes.data ?? []));
-      } catch {
-        // localStorage penuh/diblokir, abaikan (tidak fatal)
-      }
-    } catch (err) {
-      console.error(`Gagal memuat data toko/produk (percobaan ke-${attempt}):`, err);
-      if (attempt < 3) {
-        setTimeout(() => loadMasterData(attempt + 1), attempt * 2000);
-        return;
-      }
-      // 3x percobaan gagal semua -> pakai cache lokal terakhir agar dropdown tidak kosong total
-      try {
-        const cached = localStorage.getItem("cachedStoresV1");
-        if (cached) setStores(JSON.parse(cached));
-      } catch {
-        // abaikan
-      }
-      toast.error("Gagal memuat daftar toko dari server", {
-        description: "Sinyal lemah. Data toko lama (jika ada) tetap ditampilkan. Tekan Refresh untuk coba lagi.",
-        duration: 6000,
-      });
-    }
-  };
-
-  useEffect(() => {
-    loadMasterData();
+      setProducts(prod ?? []);
+      setStores(st ?? []);
+    })();
     requestGps();
-    const handleReconnect = () => loadMasterData();
-    window.addEventListener("online", handleReconnect);
-    return () => window.removeEventListener("online", handleReconnect);
   }, []);
 
   const requestGps = () => {
@@ -339,19 +307,9 @@ function SalesInputPage() {
           name: storeName.trim(),
           address: storeAddress.trim(),
           created_by: user.id,
-        }).select("id, name, address").single();
+        }).select("id").single();
         if (se) throw se;
         storeId = ns.id;
-        // Tambahkan toko baru ke state lokal supaya langsung muncul di dropdown sesi ini juga
-        setStores((prev) => {
-          const updated = [...prev, ns].sort((a, b) => a.name.localeCompare(b.name));
-          try {
-            localStorage.setItem("cachedStoresV1", JSON.stringify(updated));
-          } catch {
-            // abaikan
-          }
-          return updated;
-        });
       }
 
       // 2. Compute sequence number for today
@@ -479,7 +437,7 @@ function SalesInputPage() {
               {gpsLoading ? "Mendeteksi GPS…" : coords ? `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}` : "GPS belum tersedia"}
             </div>
             <div className="flex items-center gap-1">
-              <Button type="button" size="sm" variant="ghost" onClick={() => { requestGps(); loadMasterData(); }} disabled={gpsLoading}>
+              <Button type="button" size="sm" variant="ghost" onClick={requestGps} disabled={gpsLoading}>
                 {gpsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
               </Button>
               <Button type="button" size="sm" variant={showMap ? "default" : "outline"}
